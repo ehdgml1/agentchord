@@ -1,0 +1,68 @@
+site_name: AgentWeave
+site_description: Protocol-First Multi-Agent Framework for Python
+site_url: https://agentweave.dev
+repo_url: https://github.com/agentweave/agentweave
+repo_name: agentweave/agentweave
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Guides:
+    - Core Concepts: guides/core-concepts.md
+    - Structured Output: guides/structured-output.md
+    - Tools: guides/tools.md
+    - Memory: guides/memory.md
+    - Providers: guides/providers.md
+    - Resilience: guides/resilience.md
+    - Streaming: guides/streaming.md
+    - Multi-Agent Orchestration: guides/orchestration.md
+    - RAG Pipeline: guides/rag.md
+  - API Reference:
+    - Core: api/core.md
+    - LLM Providers: api/llm.md
+    - Tools: api/tools.md
+    - Memory: api/memory.md
+    - Resilience: api/resilience.md
+    - Tracking: api/tracking.md
+    - Errors: api/errors.md
+    - Orchestration: api/orchestration.md
+    - RAG: api/rag.md
+  - Examples: examples.md

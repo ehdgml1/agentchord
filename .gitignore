@@ -1,0 +1,160 @@
+# ============================================
+# Python
+# ============================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# ============================================
+# Node.js / Frontend
+# ============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+
+# ============================================
+# Testing & Coverage
+# ============================================
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+coverage/
+test-results/
+.vitest/
+
+# ============================================
+# Security & Secrets (CRITICAL)
+# ============================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.cert
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.secret
+*.secrets
+credentials.json
+service-account*.json
+token.json
+*.token
+secrets.yaml
+secrets.yml
+vault-config.*
+
+# ============================================
+# Database Files
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# ============================================
+# IDE & Editor
+# ============================================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# ============================================
+# Linting & Type Checking
+# ============================================
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.eslintcache
+
+# ============================================
+# Build & Bundle
+# ============================================
+*.tsbuildinfo
+
+# ============================================
+# Docker
+# ============================================
+docker-volumes/
+*.tar
+
+# ============================================
+# OS
+# ============================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.bak
+*.tmp
+*.temp
+
+# ============================================
+# Jupyter
+# ============================================
+.ipynb_checkpoints/
+
+# ============================================
+# Translations
+# ============================================
+*.mo
+*.pot
+
+# ============================================
+# Claude / AI Tools
+# ============================================
+.claude/
+.omc/

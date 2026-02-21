@@ -1,77 +1,77 @@
-# Tools Guide
+# 도구 가이드
 
-Tools allow agents to perform actions and retrieve information. AgentWeave provides a simple but powerful tool system that works with any LLM provider.
+도구는 에이전트가 행동을 취하고 정보를 가져올 수 있게 합니다. AgentChord는 모든 LLM 프로바이더와 호환되는 도구 시스템을 제공합니다.
 
-## Quick Start
+## 빠른 시작
 
-Convert any Python function to a tool using the `@tool` decorator:
+`@tool` 데코레이터로 Python 함수를 도구로 변환합니다:
 
 ```python
-from agentweave import tool, Agent
+from agentchord import tool, Agent
 
-@tool(description="Add two numbers")
+@tool(description="두 숫자를 더함")
 def add(a: int, b: int) -> int:
     return a + b
 
 agent = Agent(
     name="calculator",
-    role="Math helper",
+    role="수학 도우미",
     model="gpt-4o-mini",
     tools=[add]
 )
 
-result = agent.run_sync("What is 5 + 3?")
+result = agent.run_sync("5 + 3은?")
 print(result.output)  # "The answer is 8"
 ```
 
-## Creating Tools with @tool
+## @tool 데코레이터로 도구 만들기
 
-The `@tool` decorator extracts function signatures and converts them to LLM-compatible tool definitions.
+`@tool` 데코레이터는 함수 시그니처를 추출해 LLM 호환 도구 정의로 변환합니다.
 
-### Basic Tool
+### 기본 도구
 
 ```python
-@tool(description="Convert text to uppercase")
+@tool(description="텍스트를 대문자로 변환")
 def uppercase(text: str) -> str:
     return text.upper()
 ```
 
-The decorator extracts:
-- **name**: Function name (or custom via `name=` parameter)
-- **description**: Required; tells the LLM what the tool does
-- **parameters**: Extracted from function signature with type hints
-- **return type**: Function's return type annotation
+데코레이터가 추출하는 항목:
+- **name**: 함수 이름 (또는 `name=` 파라미터로 커스텀 지정)
+- **description**: 필수; LLM에게 도구가 무엇을 하는지 알려줌
+- **parameters**: 타입 힌트를 가진 함수 시그니처에서 추출
+- **return type**: 함수의 반환 타입 어노테이션
 
-### Custom Tool Name
+### 커스텀 도구 이름
 
 ```python
-@tool(name="uppercase_converter", description="Convert text to uppercase")
+@tool(name="uppercase_converter", description="텍스트를 대문자로 변환")
 def uppercase(text: str) -> str:
     return text.upper()
 ```
 
-### Async Tools
+### 비동기 도구
 
-Tools can be async functions:
+도구는 비동기 함수도 가능합니다:
 
 ```python
 import httpx
 
-@tool(description="Fetch content from a URL")
+@tool(description="URL에서 콘텐츠를 가져옴")
 async def fetch_url(url: str) -> str:
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
         return response.text
 ```
 
-AgentWeave automatically detects async functions and handles them correctly.
+AgentChord가 비동기 함수를 자동으로 감지하고 올바르게 처리합니다.
 
-### Parameter Types
+### 파라미터 타입
 
-AgentWeave supports all common Python types:
+AgentChord가 지원하는 Python 타입:
 
 ```python
-@tool(description="Process multiple data points")
+@tool(description="여러 데이터 포인트 처리")
 def process(
     name: str,
     count: int,
@@ -90,43 +90,42 @@ def process(
     }
 ```
 
-Supported types:
-- `str` - text
-- `int` - integers
-- `float` - decimal numbers
-- `bool` - true/false
-- `list` - arrays
-- `dict` - objects
-- Optional types (via `Optional[T]` or `T | None`)
+지원 타입:
+- `str` - 텍스트
+- `int` - 정수
+- `float` - 소수
+- `bool` - 참/거짓
+- `list` - 배열
+- `dict` - 객체
+- Optional 타입 (`Optional[T]` 또는 `T | None`)
 
-### Optional Parameters
+### 선택적 파라미터
 
-Parameters with defaults are optional:
+기본값이 있는 파라미터는 선택 사항입니다:
 
 ```python
-@tool(description="Search with filters")
+@tool(description="필터로 검색")
 def search(
     query: str,
     max_results: int = 10,
     sort_by: str = "relevance"
 ) -> list:
-    # Implementation
     return []
 ```
 
-LLM sees `max_results` and `sort_by` as optional parameters that can be omitted.
+LLM은 `max_results`와 `sort_by`를 생략 가능한 파라미터로 인식합니다.
 
-## The Tool Class
+## Tool 클래스
 
-Under the hood, `@tool` returns a `Tool` instance:
+`@tool`은 내부적으로 `Tool` 인스턴스를 반환합니다:
 
 ```python
-from agentweave.tools import Tool, ToolParameter
+from agentchord.tools.base import Tool, ToolParameter
 
-# Equivalent to using @tool decorator
+# @tool 데코레이터와 동일
 tool_instance = Tool(
     name="add",
-    description="Add two numbers",
+    description="두 숫자를 더함",
     parameters=[
         ToolParameter(name="a", type="integer", required=True),
         ToolParameter(name="b", type="integer", required=True),
@@ -135,44 +134,43 @@ tool_instance = Tool(
 )
 ```
 
-### Tool Properties
+### Tool 속성
 
 ```python
-@tool(description="Divide numbers")
+@tool(description="숫자를 나눔")
 def divide(a: float, b: float) -> float:
     if b == 0:
-        raise ValueError("Cannot divide by zero")
+        raise ValueError("0으로 나눌 수 없음")
     return a / b
 
-# Access tool properties
 print(divide.name)           # "divide"
-print(divide.description)    # "Divide numbers"
-print(divide.parameters)     # List of ToolParameter objects
-print(divide.is_async)       # False (or True for async functions)
+print(divide.description)    # "숫자를 나눔"
+print(divide.parameters)     # ToolParameter 객체 목록
+print(divide.is_async)       # False (비동기면 True)
 ```
 
-### Executing Tools Directly
+### 도구 직접 실행
 
-Execute a tool without an agent:
+에이전트 없이 도구를 직접 실행합니다:
 
 ```python
-# Sync execution
+# 비동기 실행
 result = await divide.execute(a=10, b=2)
-print(result.success)  # True
-print(result.result)   # 5.0
+print(result.success)    # True
+print(result.result)     # 5.0
 print(result.tool_name)  # "divide"
 
-# Error handling
+# 에러 처리
 result = await divide.execute(a=10, b=0)
 print(result.success)  # False
-print(result.error)    # "Cannot divide by zero"
+print(result.error)    # "0으로 나눌 수 없음"
 ```
 
-## Tool Schemas
+## 도구 스키마
 
-Tools are automatically converted to LLM provider schemas.
+도구는 LLM 프로바이더 스키마로 자동 변환됩니다.
 
-### OpenAI Schema
+### OpenAI 스키마
 
 ```python
 openai_schema = divide.to_openai_schema()
@@ -180,7 +178,7 @@ openai_schema = divide.to_openai_schema()
 #   "type": "function",
 #   "function": {
 #     "name": "divide",
-#     "description": "Divide numbers",
+#     "description": "숫자를 나눔",
 #     "parameters": {
 #       "type": "object",
 #       "properties": {
@@ -193,13 +191,13 @@ openai_schema = divide.to_openai_schema()
 # }
 ```
 
-### Anthropic Schema
+### Anthropic 스키마
 
 ```python
 anthropic_schema = divide.to_anthropic_schema()
 # {
 #   "name": "divide",
-#   "description": "Divide numbers",
+#   "description": "숫자를 나눔",
 #   "input_schema": {
 #     "type": "object",
 #     "properties": {
@@ -211,222 +209,219 @@ anthropic_schema = divide.to_anthropic_schema()
 # }
 ```
 
-## Using Tools with Agents
+## 에이전트에서 도구 사용
 
-### Single Tool
+### 단일 도구
 
 ```python
-@tool(description="Get current temperature in Celsius")
+@tool(description="현재 기온을 섭씨로 가져옴")
 def get_temp() -> float:
     return 22.5
 
 agent = Agent(
     name="weather",
-    role="Weather assistant",
+    role="날씨 도우미",
     model="gpt-4o-mini",
     tools=[get_temp]
 )
 
-result = agent.run_sync("What is the current temperature?")
+result = agent.run_sync("현재 기온은?")
 ```
 
-### Multiple Tools
+### 여러 도구
 
 ```python
-@tool(description="Add two numbers")
+@tool(description="두 숫자를 더함")
 def add(a: int, b: int) -> int:
     return a + b
 
-@tool(description="Subtract two numbers")
+@tool(description="두 숫자를 뺌")
 def subtract(a: int, b: int) -> int:
     return a - b
 
-@tool(description="Multiply two numbers")
+@tool(description="두 숫자를 곱함")
 def multiply(a: int, b: int) -> int:
     return a * b
 
 agent = Agent(
     name="calculator",
-    role="Math helper",
+    role="수학 도우미",
     model="gpt-4o-mini",
     tools=[add, subtract, multiply]
 )
 
-result = agent.run_sync("Calculate (10 + 5) * 2")
-# LLM will call add(10, 5) -> 15, then multiply(15, 2) -> 30
+result = agent.run_sync("(10 + 5) * 2 계산해줘")
+# LLM이 add(10, 5) -> 15, multiply(15, 2) -> 30 순서로 호출
 ```
 
-## Tool Executor
+## ToolExecutor
 
-For advanced use cases, manage tools directly with `ToolExecutor`:
+고급 사용 사례에서 도구를 직접 관리합니다:
 
 ```python
-from agentweave.tools import ToolExecutor
+from agentchord.tools.executor import ToolExecutor
 
-@tool(description="Add two numbers")
+@tool(description="두 숫자를 더함")
 def add(a: int, b: int) -> int:
     return a + b
 
-@tool(description="Subtract two numbers")
+@tool(description="두 숫자를 뺌")
 def subtract(a: int, b: int) -> int:
     return a - b
 
 executor = ToolExecutor([add, subtract])
 
-# List available tools
+# 사용 가능한 도구 목록
 print(executor.tool_names)  # ["add", "subtract"]
 
-# Execute a tool by name
+# 이름으로 도구 실행
 result = await executor.execute("add", a=5, b=3)
 print(result.success)  # True
 print(result.result)   # 8
 
-# Unknown tool
+# 존재하지 않는 도구
 result = await executor.execute("divide", a=10, b=2)
 print(result.success)  # False
 print(result.error)    # "Tool 'divide' not found"
 
-# List tools as LLM schemas
+# LLM 스키마로 변환
 tools_for_openai = executor.to_openai_schemas()
 tools_for_anthropic = executor.to_anthropic_schemas()
 ```
 
-## Multi-Round Tool Calling
+## 멀티라운드 도구 호출
 
-Agents can use multiple tools in sequence:
+에이전트는 도구를 순차적으로 여러 번 사용할 수 있습니다:
 
 ```python
-@tool(description="Search the web")
+@tool(description="웹 검색")
 def web_search(query: str) -> str:
     return "Results for: " + query
 
-@tool(description="Analyze text sentiment")
+@tool(description="텍스트 감성 분석")
 def analyze_sentiment(text: str) -> str:
     return "positive" if len(text) > 5 else "neutral"
 
 agent = Agent(
     name="analyst",
-    role="Research analyst",
+    role="리서치 분석가",
     model="gpt-4o-mini",
     tools=[web_search, analyze_sentiment],
-    max_tool_rounds=10  # Allow up to 10 tool calls
+    max_tool_rounds=10  # 최대 10번 도구 호출 허용
 )
 
 result = agent.run_sync(
-    "Search for 'AI trends 2025' and analyze the sentiment of the results"
+    "'AI 트렌드 2025' 검색하고 결과 감성 분석해줘"
 )
-# LLM will:
-# 1. Call web_search("AI trends 2025")
-# 2. Receive search results
-# 3. Call analyze_sentiment(results)
-# 4. Receive sentiment
-# 5. Provide final analysis
+# LLM 실행 순서:
+# 1. web_search("AI 트렌드 2025") 호출
+# 2. 검색 결과 수신
+# 3. analyze_sentiment(results) 호출
+# 4. 감성 결과 수신
+# 5. 최종 분석 제공
 ```
 
-The `max_tool_rounds` parameter (default: 10) prevents infinite loops and limits tool calling rounds.
+`max_tool_rounds` 파라미터(기본값: 10)는 무한 루프를 방지하고 도구 호출 횟수를 제한합니다.
 
-## MCP Tool Integration
+## MCP 도구 통합
 
-AgentWeave can bridge Model Context Protocol (MCP) tools to the agent system:
+AgentChord는 MCP(Model Context Protocol) 도구를 에이전트 시스템에 연결합니다:
 
 ```python
-from agentweave.protocols.mcp.adapter import mcp_tool_to_tool
-from agentweave import Agent
-
-# Assume mcp_client is a connected MCPClient instance
-mcp_tools = await agent.setup_mcp()  # Auto-register MCP tools
-# Tools from MCP are automatically added to the agent
+# agent에 mcp_client를 전달하면 setup_mcp()로 도구 자동 등록
+mcp_tools = await agent.setup_mcp()
+# MCP 도구가 에이전트에 자동으로 추가됨
 ```
 
-The `setup_mcp()` method:
-1. Connects to the MCP server
-2. Discovers available tools
-3. Converts MCPTool → AgentWeave Tool
-4. Registers them with the agent
+`setup_mcp()` 메서드:
+1. MCP 서버에 연결
+2. 사용 가능한 도구 탐색
+3. MCPTool → AgentChord Tool 변환
+4. 에이전트에 등록
 
-## Error Handling
+## 에러 처리
 
-Tools should raise exceptions for errors; AgentWeave handles them:
+도구는 에러 시 예외를 발생시키면 AgentChord가 처리합니다:
 
 ```python
-@tool(description="Calculate square root")
+@tool(description="제곱근 계산")
 def sqrt(x: float) -> float:
     if x < 0:
-        raise ValueError("Cannot take square root of negative number")
+        raise ValueError("음수의 제곱근은 구할 수 없음")
     return x ** 0.5
 
-# When tool raises an exception, ToolResult captures it
+# 도구가 예외를 발생시키면 ToolResult가 포착
 result = await sqrt.execute(x=-1)
 print(result.success)  # False
-print(result.error)    # "Cannot take square root of negative number"
+print(result.error)    # "음수의 제곱근은 구할 수 없음"
 
-# The agent continues and can retry or provide alternative approach
+# 에이전트는 계속 실행하며 다른 방법을 시도할 수 있음
 ```
 
-## Best Practices
+## 베스트 프랙티스
 
-### 1. Clear Descriptions
+### 1. 명확한 설명 작성
 
-Write descriptions that help the LLM understand what the tool does:
+LLM이 도구를 이해할 수 있도록 명확한 설명을 작성합니다:
 
 ```python
-# Good
-@tool(description="Calculate the factorial of a positive integer")
+# 좋음
+@tool(description="양의 정수의 팩토리얼 계산")
 def factorial(n: int) -> int:
     ...
 
-# Less helpful
-@tool(description="Math function")
+# 덜 좋음
+@tool(description="수학 함수")
 def factorial(n: int) -> int:
     ...
 ```
 
-### 2. Type Hints
+### 2. 타입 힌트 사용
 
-Always include type hints for parameters:
+파라미터에 항상 타입 힌트를 포함합니다:
 
 ```python
-# Good
-@tool(description="Convert temperature")
+# 좋음
+@tool(description="온도 변환")
 def celsius_to_fahrenheit(celsius: float) -> float:
     return (celsius * 9/5) + 32
 
-# Harder for type checking
-@tool(description="Convert temperature")
+# 타입 체크가 어려움
+@tool(description="온도 변환")
 def celsius_to_fahrenheit(celsius):
     ...
 ```
 
-### 3. Simple Return Values
+### 3. 단순한 반환 값
 
-Return simple, serializable values:
+직렬화 가능한 단순한 값을 반환합니다:
 
 ```python
-# Good
-@tool(description="Get user data")
+# 좋음
+@tool(description="사용자 데이터 가져오기")
 def get_user(user_id: int) -> dict:
     return {"id": user_id, "name": "Alice", "age": 30}
 
-# Problematic - complex objects don't serialize well
-@tool(description="Get user data")
+# 복잡한 객체는 직렬화가 어려움
+@tool(description="사용자 데이터 가져오기")
 def get_user(user_id: int) -> User:
     return User(user_id)
 ```
 
-### 4. Handle Errors Gracefully
+### 4. 에러를 예외로 처리
 
-Let exceptions propagate; AgentWeave captures them:
+예외를 발생시키면 AgentChord가 처리합니다:
 
 ```python
-# Good
-@tool(description="Divide numbers")
+# 좋음: 예외를 발생시킴
+@tool(description="숫자 나누기")
 def divide(a: float, b: float) -> float:
     if b == 0:
-        raise ValueError("Division by zero")
+        raise ValueError("0으로 나누기")
     return a / b
 
-# Avoid catching and returning error strings
-@tool(description="Divide numbers")
+# 피해야 할 패턴: 에러 문자열 반환
+@tool(description="숫자 나누기")
 def divide(a: float, b: float) -> dict:
     try:
         return {"result": a / b, "error": None}
@@ -434,54 +429,54 @@ def divide(a: float, b: float) -> dict:
         return {"result": None, "error": "failed"}
 ```
 
-### 5. Keep Tools Focused
+### 5. 도구는 단일 책임
 
-One tool = one responsibility:
+하나의 도구 = 하나의 책임:
 
 ```python
-# Good - separate concerns
-@tool(description="Search the web")
+# 좋음: 관심사 분리
+@tool(description="웹 검색")
 def web_search(query: str) -> str:
     ...
 
-@tool(description="Extract key information from text")
+@tool(description="텍스트에서 핵심 정보 추출")
 def extract_key_info(text: str) -> dict:
     ...
 
-# Less good - multiple concerns in one tool
-@tool(description="Search the web and extract information")
+# 덜 좋음: 하나의 도구에 여러 책임
+@tool(description="웹 검색 후 정보 추출")
 def search_and_extract(query: str) -> dict:
     ...
 ```
 
-## Complete Example
+## 완전한 예제
 
 ```python
 import asyncio
-from agentweave import Agent, tool
+from agentchord import Agent, tool
 
-@tool(description="Get the current temperature in Celsius")
+@tool(description="현재 기온을 섭씨로 가져옴")
 def get_temperature() -> float:
     return 22.5
 
-@tool(description="Convert Celsius to Fahrenheit")
+@tool(description="섭씨를 화씨로 변환")
 def celsius_to_fahrenheit(celsius: float) -> float:
     return (celsius * 9/5) + 32
 
-@tool(description="Check if temperature is comfortable (15-25 C)")
+@tool(description="기온이 쾌적한지 확인 (15-25도)")
 def is_comfortable(celsius: float) -> bool:
     return 15 <= celsius <= 25
 
 async def main():
     agent = Agent(
         name="weather_bot",
-        role="Weather assistant",
+        role="날씨 도우미",
         model="gpt-4o-mini",
         tools=[get_temperature, celsius_to_fahrenheit, is_comfortable]
     )
 
     result = agent.run_sync(
-        "Tell me the current temperature in Fahrenheit and whether it's comfortable"
+        "현재 기온을 화씨로 알려주고 쾌적한지도 알려줘"
     )
     print(result.output)
 
@@ -489,8 +484,8 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-## See Also
+## 참고
 
-- [Memory Guide](memory.md) - Retain context across tool calls
-- [Agent Documentation](../api/core.md) - Agent API details
-- [Examples](../examples.md) - Complete tool examples
+- [메모리 가이드](memory.md) - 도구 호출 전반에 걸쳐 컨텍스트 유지
+- [Agent API](../api/core.md) - Agent API 상세 정보
+- [예제](../examples.md) - 도구 전체 예제

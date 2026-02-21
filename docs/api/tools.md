@@ -1,378 +1,266 @@
-# Tools API Reference
+# 도구 API 레퍼런스
 
-Complete API reference for the tool system that enables agents to execute functions.
+에이전트가 함수를 실행할 수 있게 해주는 도구 시스템에 대한 완전한 API 레퍼런스입니다.
 
-## @tool Decorator
+---
 
-Decorator to convert a Python function into a tool that agents can call.
+## @tool 데코레이터
+
+함수를 에이전트가 사용할 수 있는 `Tool` 객체로 변환하는 데코레이터입니다. 함수 시그니처에서 파라미터 타입과 이름을 자동으로 추출합니다.
 
 ```python
-from agentweave.tools import tool
+from agentchord.tools import tool
 
-@tool(name="add", description="Add two numbers together")
+# 기본 사용
+@tool(description="두 수를 더합니다")
 def add(a: int, b: int) -> int:
-    """Add two integers."""
     return a + b
 
-@tool(description="Fetch content from a URL")
-async def fetch_url(url: str) -> str:
-    """Fetch HTML content from a URL."""
-    import httpx
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        return response.text
+# 비동기 함수도 지원
+@tool(name="web_search", description="웹에서 정보를 검색합니다")
+async def search(query: str, max_results: int = 5) -> str:
+    # 구현
+    return f"{query} 검색 결과..."
+
+# 에이전트에 등록
+from agentchord import Agent
+agent = Agent(name="helper", role="...", tools=[add, search])
 ```
 
-**Parameters:**
+**파라미터:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `name` | `str \| None` | None | Tool name (auto-derived from function name if None) |
-| `description` | `str \| None` | None | Tool description shown to LLM |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `name` | `str \| None` | `None` | 도구 이름. None이면 함수 이름 사용 |
+| `description` | `str \| None` | `None` | 도구 설명. None이면 함수 docstring 사용 |
 
-**Returns:**
+**반환값:** `Tool` 객체
 
-| Type | Description |
-|------|-------------|
-| `Tool` | Converted tool object |
+**파라미터 타입 매핑:**
 
-**Notes:**
+데코레이터는 Python 타입 힌트를 JSON Schema 타입으로 자동 변환합니다.
 
-- Decorator extracts parameter types from function signature
-- Supports both sync and async functions
-- Docstring is used as description if `description` not provided
+| Python 타입 | JSON Schema 타입 |
+|------------|----------------|
+| `str` | `"string"` |
+| `int` | `"integer"` |
+| `float` | `"number"` |
+| `bool` | `"boolean"` |
+| `list` | `"array"` |
+| `dict` | `"object"` |
+| `Optional[X]` | X의 타입 (required=False) |
+
+> **주의:** 기본값이 있는 파라미터는 `required=False`로 설정됩니다.
+
+---
 
 ## Tool
 
-A function wrapped as a tool that agents can call.
+에이전트가 호출할 수 있는 도구를 나타내는 Pydantic 모델입니다.
 
 ```python
-from agentweave.tools import Tool, ToolParameter
+from agentchord.tools.base import Tool, ToolParameter
 
-# Create directly (less common)
+# 직접 생성
 tool = Tool(
-    name="search",
-    description="Search the web",
+    name="get_weather",
+    description="특정 도시의 날씨를 조회합니다",
     parameters=[
-        ToolParameter(
-            name="query",
-            type="string",
-            description="Search query",
-            required=True
-        )
+        ToolParameter(name="city", type="string", description="도시 이름", required=True),
+        ToolParameter(name="unit", type="string", description="온도 단위", required=False, default="celsius"),
     ],
-    func=lambda query: f"Results for {query}"
+    func=get_weather_func,
 )
 
-# More common: use decorator
-@tool(description="Search the web")
-def search(query: str) -> str:
-    return f"Results for {query}"
+# 실행
+result = await tool.execute(city="서울", unit="celsius")
+print(result.result)   # 성공 시 결과
+print(result.success)  # True/False
+print(result.error)    # 실패 시 에러 메시지
 ```
 
-**Fields:**
+**필드:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | `str` | Tool name |
-| `description` | `str` | Tool description |
-| `parameters` | `list[ToolParameter]` | Input parameters |
-| `func` | `Callable` | Underlying function |
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `name` | `str` | 도구 이름 |
+| `description` | `str` | 도구 설명 |
+| `parameters` | `list[ToolParameter]` | 파라미터 정의 목록 |
+| `func` | `Callable` | 실행할 함수 (동기/비동기 모두 가능) |
 
-**Properties:**
+**프로퍼티:**
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `is_async` | `bool` | True if function is async |
+| 프로퍼티 | 타입 | 설명 |
+|----------|------|------|
+| `is_async` | `bool` | 함수가 비동기(coroutine)인지 여부 |
 
-**Methods:**
+**메서드:**
 
-| Method | Signature | Returns | Description |
-|--------|-----------|---------|-------------|
-| `execute` | `async execute(**kwargs: Any) -> ToolResult` | `ToolResult` | Execute tool with arguments |
-| `to_openai_schema` | `to_openai_schema() -> dict[str, Any]` | `dict` | Convert to OpenAI function schema |
-| `to_anthropic_schema` | `to_anthropic_schema() -> dict[str, Any]` | `dict` | Convert to Anthropic tool schema |
+| 메서드 | 시그니처 | 반환값 | 설명 |
+|--------|---------|--------|------|
+| `execute` | `async execute(**kwargs) -> ToolResult` | `ToolResult` | 도구 실행. 예외를 캐치하여 `ToolResult.error`에 저장 |
+| `to_openai_schema` | `to_openai_schema() -> dict[str, Any]` | `dict` | OpenAI 함수 호출 스키마로 변환 |
+| `to_anthropic_schema` | `to_anthropic_schema() -> dict[str, Any]` | `dict` | Anthropic 도구 스키마로 변환 |
 
-**Example:**
-
-```python
-# Define tool
-@tool(description="Calculate factorial")
-def factorial(n: int) -> int:
-    """Calculate n!"""
-    if n <= 1:
-        return 1
-    return n * factorial(n - 1)
-
-# Use in agent
-agent = Agent(
-    name="calculator",
-    role="You are a math tutor",
-    tools=[factorial]
-)
-
-result = await agent.run("What is 5 factorial?")
-```
+---
 
 ## ToolParameter
 
-Definition of a tool's input parameter.
+도구의 파라미터 정의입니다.
 
 ```python
-from agentweave.tools import ToolParameter
+from agentchord.tools.base import ToolParameter
 
 param = ToolParameter(
     name="query",
     type="string",
-    description="Search query string",
+    description="검색할 쿼리",
     required=True,
-    enum=["python", "javascript", "rust"]
+    default=None,
+    enum=None,
 )
 ```
 
-**Fields:**
+**필드:**
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `name` | `str` | Required | Parameter name |
-| `type` | `str` | Required | Type: string, integer, number, boolean, array, object |
-| `description` | `str` | "" | Parameter description for LLM |
-| `required` | `bool` | True | Whether parameter is required |
-| `default` | `Any` | None | Default value if not provided |
-| `enum` | `list[Any] \| None` | None | Allowed values |
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `name` | `str` | 필수 | 파라미터 이름 |
+| `type` | `str` | 필수 | JSON Schema 타입 ("string", "integer", "number", "boolean", "array", "object") |
+| `description` | `str` | `""` | 파라미터 설명 |
+| `required` | `bool` | `True` | 필수 파라미터 여부 |
+| `default` | `Any` | `None` | 기본값 |
+| `enum` | `list[Any] \| None` | `None` | 허용 값 목록 (열거형) |
 
-**Supported Types:**
-
-| Type | Python Type | Example |
-|------|-------------|---------|
-| "string" | `str` | "hello" |
-| "integer" | `int` | 42 |
-| "number" | `float` | 3.14 |
-| "boolean" | `bool` | True |
-| "array" | `list` | [1, 2, 3] |
-| "object" | `dict` | {"key": "value"} |
+---
 
 ## ToolResult
 
-Result of executing a tool.
+도구 실행 결과입니다.
 
 ```python
-from agentweave.tools import ToolResult
+from agentchord.tools.base import ToolResult
 
-# Successful execution
-result = ToolResult.success_result(
-    tool_name="search",
-    result="Found 42 results",
-    tool_call_id="call_123"
-)
+# 성공 결과 생성
+result = ToolResult.success_result("search", data={"results": [...]})
+print(result.success)   # True
+print(result.result)    # {"results": [...]}
 
-# Failed execution
-result = ToolResult.error_result(
-    tool_name="search",
-    error="Connection timeout",
-    tool_call_id="call_123"
-)
+# 실패 결과 생성
+result = ToolResult.error_result("search", "연결 실패")
+print(result.success)   # False
+print(result.error)     # "연결 실패"
 ```
 
-**Fields:**
+**필드:**
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `tool_call_id` | `str` | Unique identifier for tool call |
-| `tool_name` | `str` | Name of the tool executed |
-| `success` | `bool` | True if execution succeeded |
-| `result` | `Any` | Execution result (if successful) |
-| `error` | `str \| None` | Error message (if failed) |
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `tool_call_id` | `str` | 이 실행의 고유 ID (자동 생성 UUID) |
+| `tool_name` | `str` | 실행된 도구 이름 |
+| `success` | `bool` | 실행 성공 여부 |
+| `result` | `Any` | 성공 시 반환 값 |
+| `error` | `str \| None` | 실패 시 에러 메시지 |
 
-**Class Methods:**
+**클래스 메서드:**
 
-| Method | Signature | Returns | Description |
-|--------|-----------|---------|-------------|
-| `success_result` | `success_result(tool_name: str, result: Any, tool_call_id: str \| None = None) -> ToolResult` | `ToolResult` | Create successful result |
-| `error_result` | `error_result(tool_name: str, error: str, tool_call_id: str \| None = None) -> ToolResult` | `ToolResult` | Create error result |
+| 메서드 | 시그니처 | 반환값 | 설명 |
+|--------|---------|--------|------|
+| `success_result` | `success_result(tool_name: str, result: Any, tool_call_id: str \| None = None) -> ToolResult` | `ToolResult` | 성공 결과 생성 |
+| `error_result` | `error_result(tool_name: str, error: str, tool_call_id: str \| None = None) -> ToolResult` | `ToolResult` | 실패 결과 생성 |
+
+---
 
 ## ToolExecutor
 
-Manages tool registration and execution.
+도구를 관리하고 실행하는 매니저입니다.
 
 ```python
-from agentweave.tools import ToolExecutor, tool
+from agentchord.tools.executor import ToolExecutor
+from agentchord.tools import tool
 
-# Create executor with tools
-@tool(description="Add numbers")
+@tool(description="덧셈")
 def add(a: int, b: int) -> int:
     return a + b
 
-@tool(description="Multiply numbers")
+@tool(description="곱셈")
 def multiply(a: int, b: int) -> int:
     return a * b
 
-executor = ToolExecutor(tools=[add, multiply])
+# 초기 도구 목록으로 생성
+executor = ToolExecutor([add, multiply])
 
-# Or register tools after creation
-executor = ToolExecutor()
-executor.register(add)
-executor.register(multiply)
+# 도구 추가/제거
+executor.register(another_tool)
+executor.unregister("add")
 
-# Execute a tool
-result = await executor.execute("add", a=5, b=3, tool_call_id="call_123")
-print(result.result)  # 8
+# 실행
+result = await executor.execute("multiply", tool_call_id="call_1", a=3, b=4)
+print(result.result)  # 12
 
-# List available tools
-tools_list = executor.list_tools()
+# 도구 목록 조회
+print(executor.tool_names)   # ["multiply"]
+print(len(executor))          # 1
+print("multiply" in executor) # True
 ```
 
-**Constructor Parameters:**
+**생성자 파라미터:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `tools` | `list[Tool] \| None` | None | Initial tools to register |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `tools` | `list[Tool] \| None` | `None` | 초기 도구 목록 |
 
-**Methods:**
+**메서드:**
 
-| Method | Signature | Returns | Description |
-|--------|-----------|---------|-------------|
-| `register` | `register(tool: Tool) -> None` | `None` | Register a tool |
-| `execute` | `async execute(name: str, tool_call_id: str \| None = None, **kwargs) -> ToolResult` | `ToolResult` | Execute named tool |
-| `list_tools` | `list_tools() -> list[Tool]` | `list[Tool]` | Get all registered tools |
-| `to_openai_tools` | `to_openai_tools() -> list[dict]` | `list[dict]` | Get OpenAI function schemas |
-| `to_anthropic_tools` | `to_anthropic_tools() -> list[dict]` | `list[dict]` | Get Anthropic tool schemas |
+| 메서드 | 시그니처 | 반환값 | 설명 |
+|--------|---------|--------|------|
+| `register` | `register(tool: Tool) -> None` | `None` | 도구 등록 |
+| `unregister` | `unregister(name: str) -> bool` | `bool` | 이름으로 도구 등록 해제. 성공 시 True 반환 |
+| `get` | `get(name: str) -> Tool \| None` | `Tool \| None` | 이름으로 도구 조회 |
+| `list_tools` | `list_tools() -> list[Tool]` | `list[Tool]` | 등록된 모든 도구 목록 반환 |
+| `execute` | `async execute(name: str, tool_call_id: str \| None = None, **arguments) -> ToolResult` | `ToolResult` | 이름으로 도구 실행 |
+| `to_openai_tools` | `to_openai_tools() -> list[dict]` | `list[dict]` | 모든 도구를 OpenAI 형식으로 변환 |
+| `to_anthropic_tools` | `to_anthropic_tools() -> list[dict]` | `list[dict]` | 모든 도구를 Anthropic 형식으로 변환 |
 
-## Complete Example
+**프로퍼티:**
+
+| 프로퍼티 | 타입 | 설명 |
+|----------|------|------|
+| `tool_names` | `list[str]` | 등록된 모든 도구 이름 목록 |
+
+---
+
+## 종합 사용 예제
 
 ```python
-from agentweave.tools import tool
-from agentweave.core import Agent
+from agentchord import Agent
+from agentchord.tools import tool
+import httpx
 
-# Define tools
-@tool(description="Search Wikipedia for a topic")
-async def search_wikipedia(topic: str) -> str:
-    """Search Wikipedia and return summary."""
-    import httpx
-    url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{topic}"
+# 도구 정의
+@tool(description="지정한 도시의 현재 날씨를 조회합니다")
+async def get_weather(city: str, unit: str = "celsius") -> str:
+    """날씨 조회 도구"""
     async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        data = response.json()
-        return data.get("extract", "No results")
+        response = await client.get(
+            "https://wttr.in/{city}?format=3",
+            params={"city": city}
+        )
+        return response.text
 
-@tool(description="Count words in text")
-def count_words(text: str) -> int:
-    """Count number of words in text."""
-    return len(text.split())
+@tool(description="두 숫자를 더합니다")
+def add_numbers(a: float, b: float) -> float:
+    return a + b
 
-# Create agent with tools
+# 에이전트에 도구 등록
 agent = Agent(
-    name="researcher",
-    role="You are a research assistant. Use tools to find information.",
-    tools=[search_wikipedia, count_words]
+    name="tool-agent",
+    role="다양한 도구를 활용하는 어시스턴트",
+    model="gpt-4o-mini",
+    tools=[get_weather, add_numbers],
 )
 
-# Use agent
-result = await agent.run(
-    "Tell me about Python programming and count the words in the result"
-)
-print(f"Output: {result.output}")
-print(f"Cost: ${result.cost:.4f}")
+# 도구가 자동으로 호출됨
+result = await agent.run("서울의 날씨를 알려주고, 3 더하기 7도 계산해줘")
+print(result.output)
 ```
-
-## Tool Schemas
-
-Tools are automatically converted to LLM-specific schemas:
-
-### OpenAI Schema
-
-```python
-{
-    "type": "function",
-    "function": {
-        "name": "search",
-        "description": "Search the web",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Search query"
-                }
-            },
-            "required": ["query"]
-        }
-    }
-}
-```
-
-### Anthropic Schema
-
-```python
-{
-    "name": "search",
-    "description": "Search the web",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "query": {
-                "type": "string",
-                "description": "Search query"
-            }
-        },
-        "required": ["query"]
-    }
-}
-```
-
-## Best Practices
-
-1. **Clear Descriptions**: Write descriptive tool descriptions so the LLM understands when to use them
-
-```python
-# Good
-@tool(description="Search the web for current information about a topic")
-def search(query: str) -> str:
-    pass
-
-# Bad
-@tool(description="Search")
-def search(query: str) -> str:
-    pass
-```
-
-2. **Type Hints**: Always include type hints for tool parameters
-
-```python
-# Good
-@tool(description="Add two numbers")
-def add(a: int, b: int) -> int:
-    return a + b
-
-# Less helpful to LLM
-@tool(description="Add two numbers")
-def add(a, b):
-    return a + b
-```
-
-3. **Error Handling**: Tool functions should handle errors gracefully
-
-```python
-@tool(description="Fetch URL")
-async def fetch(url: str) -> str:
-    try:
-        import httpx
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, timeout=5.0)
-            response.raise_for_status()
-            return response.text
-    except Exception as e:
-        return f"Error: {e}"
-```
-
-4. **Docstrings**: Include docstrings for tool functions
-
-```python
-@tool(description="Calculate square root")
-def sqrt(n: float) -> float:
-    """Calculate the square root of a number."""
-    import math
-    return math.sqrt(n)
-```
-
-See the [Tools Guide](../guides/tools.md) for more usage examples.

@@ -1,240 +1,223 @@
-# Streaming Guide
+# 스트리밍 가이드
 
-AgentWeave supports streaming responses from all LLM providers, enabling real-time token-by-token delivery for interactive applications.
+AgentChord는 모든 LLM 프로바이더에서 스트리밍 응답을 지원합니다. 실시간으로 토큰을 전달하여 인터랙티브 애플리케이션을 구현할 수 있습니다.
 
-## Quick Start
+## 빠른 시작
 
-Stream responses token by token:
+토큰 단위로 응답을 스트리밍합니다:
 
 ```python
-from agentweave import Agent
+from agentchord import Agent
 
 agent = Agent(
     name="assistant",
-    role="Helpful AI",
+    role="도움이 되는 AI",
     model="gpt-4o-mini"
 )
 
-# Stream response
-async for chunk in agent.stream("Tell me a short story"):
+# 응답 스트리밍
+async for chunk in agent.stream("짧은 이야기 들려줘"):
     print(chunk.delta, end="", flush=True)
-print()  # Newline after stream
-```
-
-Output:
-```
-Once upon a time, there was a small village... [continues streaming]
+print()  # 스트림 후 줄바꿈
 ```
 
 ## StreamChunk
 
-Each streamed response yields a `StreamChunk` object:
+스트리밍된 각 응답은 `StreamChunk` 객체를 yield합니다:
 
 ```python
-from agentweave.core.types import StreamChunk
+from agentchord.core.types import StreamChunk
 
-# Each chunk contains:
+# 각 청크는 다음을 포함:
 chunk = StreamChunk(
-    content="Complete content so far",      # Full accumulated text
-    delta="Next chunk",                      # Just the new text
-    finish_reason=None,                      # None until end
-    usage=None                               # Usage stats (last chunk only)
+    content="지금까지 누적된 전체 내용",  # 전체 누적 텍스트
+    delta="이번 청크의 새 텍스트",         # 새로 추가된 텍스트만
+    finish_reason=None,                    # 끝날 때까지 None
+    usage=None                             # 마지막 청크에서만 사용량 통계
 )
 
-print(chunk.content)       # "Complete content so farNext chunk"
-print(chunk.delta)         # "Next chunk"
-print(chunk.finish_reason) # None (not done yet)
-print(chunk.usage)         # None (not last chunk)
+print(chunk.content)       # 누적된 전체 응답
+print(chunk.delta)         # 이번 청크의 새 텍스트
+print(chunk.finish_reason) # None (아직 완료되지 않음)
+print(chunk.usage)         # None (마지막 청크가 아님)
 ```
 
-### Properties
+### 속성
 
-| Property | Type | Meaning |
-|----------|------|---------|
-| `content` | str | Full accumulated response so far |
-| `delta` | str | New text in this chunk (the "delta") |
-| `finish_reason` | str or None | `"stop"` on last chunk, else `None` |
-| `usage` | Usage or None | Token counts on last chunk only |
+| 속성 | 타입 | 의미 |
+|------|------|------|
+| `content` | str | 지금까지 누적된 전체 응답 |
+| `delta` | str | 이번 청크의 새 텍스트 |
+| `finish_reason` | str or None | 마지막 청크에서 `"stop"`, 아니면 `None` |
+| `usage` | Usage or None | 마지막 청크에서만 토큰 수 |
 
-## Basic Streaming
+## 기본 스트리밍
 
-Stream without tools:
+도구 없이 스트리밍:
 
 ```python
 agent = Agent(
     name="storyteller",
-    role="Creative writer",
+    role="창작 작가",
     model="gpt-4o-mini"
 )
 
-# Stream and print in real-time
-async for chunk in agent.stream("Write a limerick about cats"):
+# 실시간으로 스트리밍하며 출력
+async for chunk in agent.stream("고양이에 대한 짧은 시 써줘"):
     print(chunk.delta, end="", flush=True)
 
-print()  # Final newline
+print()  # 마지막 줄바꿈
 ```
 
-## Streaming with Tools
+## 도구를 포함한 스트리밍
 
-Agents with tools use a hybrid approach:
+도구가 있는 에이전트는 하이브리드 방식을 사용합니다:
 
-1. **Tool Calling Phase**: Agent calls tools (no streaming)
-2. **Response Phase**: Final response is streamed
+1. **도구 호출 단계**: 에이전트가 도구를 호출함 (스트리밍 없음)
+2. **응답 단계**: 최종 응답이 스트리밍됨
 
 ```python
-from agentweave import Agent, tool
+from agentchord import Agent, tool
 
-@tool(description="Get current temperature in Celsius")
+@tool(description="현재 기온을 섭씨로 가져옴")
 def get_temperature() -> float:
     return 22.5
 
-@tool(description="Convert Celsius to Fahrenheit")
+@tool(description="섭씨를 화씨로 변환")
 def celsius_to_fahrenheit(celsius: float) -> float:
     return (celsius * 9/5) + 32
 
 agent = Agent(
     name="weather",
-    role="Weather assistant",
+    role="날씨 어시스턴트",
     model="gpt-4o-mini",
     tools=[get_temperature, celsius_to_fahrenheit]
 )
 
-# Agent will:
-# 1. Call get_temperature() -> 22.5
-# 2. Call celsius_to_fahrenheit(22.5) -> 72.5
-# 3. Stream the response about current temperature
-async for chunk in agent.stream("What's the temperature in Fahrenheit?"):
+# 에이전트 실행 순서:
+# 1. get_temperature() 호출 -> 22.5
+# 2. celsius_to_fahrenheit(22.5) 호출 -> 72.5
+# 3. 현재 기온에 대한 응답 스트리밍
+async for chunk in agent.stream("화씨로 현재 기온은?"):
     print(chunk.delta, end="", flush=True)
 ```
 
-Process:
+실행 흐름:
 ```
-User query
+사용자 쿼리
     ↓
-Agent runs tools (not streamed):
+에이전트가 도구 실행 (스트리밍 없음):
     - get_temperature() → 22.5
     - celsius_to_fahrenheit(22.5) → 72.5
     ↓
-Agent generates response (streamed):
-    - "The current temperature is 72.5 F..." [token 1]
-    - " degrees, which is quite comfortable." [token 2]
+에이전트가 응답 생성 (스트리밍):
+    - "현재 기온은 72.5 F..." [토큰 1]
+    - "도로, 매우 쾌적한 날씨입니다." [토큰 2]
     ↓
-User sees real-time stream
+사용자가 실시간 스트림 확인
 ```
 
-### Tool Calling Details
+도구 호출 단계는 조용히 진행되며 도구 결과가 준비된 후에야 청크가 시작됩니다.
 
-```python
-# With tools present
-async for chunk in agent.stream("Calculate 10 + 5"):
-    # Chunk 1: "" (tool calling phase, no content yet)
-    # Chunk 2: "The result of 10 + 5 is 15." (streaming starts)
-    # Chunk 3: More of the response...
-    # Last chunk: finish_reason="stop", usage=Usage(...)
-    print(chunk.delta, end="", flush=True)
-```
+## 스트리밍 아키텍처
 
-The tool phase happens silently - you only see chunks once tool results are ready.
+### 도구 없는 경우
 
-## Streaming Architecture
-
-### Without Tools
-
-Pure streaming mode:
+순수 스트리밍 모드:
 
 ```
-LLM Provider
-    ↓ stream tokens
-StreamChunk 1: content="Once upon"
-StreamChunk 2: content="Once upon a"
-StreamChunk 3: content="Once upon a time"
+LLM 프로바이더
+    ↓ 토큰 스트리밍
+StreamChunk 1: content="옛날"
+StreamChunk 2: content="옛날 옛날"
+StreamChunk 3: content="옛날 옛날에"
 ...
 StreamChunk N: content="...", finish_reason="stop", usage=Usage(...)
 ```
 
-### With Tools
+### 도구가 있는 경우
 
-Hybrid mode (complete for tools, stream for final):
+하이브리드 모드 (도구에는 complete(), 최종 응답에는 stream()):
 
 ```
-LLM Provider
-    ↓ complete() to get tool calls
-Tool Results Available
-    ↓ stream() for final response
-StreamChunk 1: content="Based on..."
-StreamChunk 2: content="Based on the search..."
+LLM 프로바이더
+    ↓ complete()로 도구 호출 가져오기
+도구 결과 준비
+    ↓ 최종 응답을 stream()으로 스트리밍
+StreamChunk 1: content="검색 결과에 따르면..."
+StreamChunk 2: content="검색 결과에 따르면, AI는..."
 ...
 StreamChunk N: content="...", finish_reason="stop"
 ```
 
-## Usage Statistics
+## 사용량 통계
 
-Token usage is only available on the final chunk:
+토큰 사용량은 마지막 청크에서만 확인 가능합니다:
 
 ```python
-async for chunk in agent.stream("Tell me something"):
+async for chunk in agent.stream("뭔가 알려줘"):
     if chunk.finish_reason == "stop":
-        # Last chunk - has usage info
-        print(f"Tokens: {chunk.usage.total_tokens}")
-        print(f"Cost: ${chunk.usage.completion_tokens * 0.00015 / 1000:.4f}")
+        # 마지막 청크 - 사용량 정보 있음
+        print(f"토큰: {chunk.usage.total_tokens}")
     else:
-        # Not the last chunk - no usage yet
+        # 마지막 청크가 아님 - 사용량 없음
         assert chunk.usage is None
 ```
 
-Get final result after streaming:
-
-```python
-async for chunk in agent.stream("Query"):
-    pass  # Continue until stream ends
-
-# After loop exits:
-if chunk.finish_reason == "stop":
-    print(f"Final token count: {chunk.usage.total_tokens}")
-```
-
-## Building Responses
-
-### Accumulate Full Response
-
-```python
-response_parts = []
-
-async for chunk in agent.stream("Hello"):
-    response_parts.append(chunk.delta)
-
-full_response = "".join(response_parts)
-print(f"Full response: {full_response}")
-```
-
-Or use the `content` field (already accumulated):
+스트리밍 후 마지막 결과 가져오기:
 
 ```python
 last_chunk = None
 
-async for chunk in agent.stream("Hello"):
+async for chunk in agent.stream("쿼리"):
+    last_chunk = chunk
+
+if last_chunk and last_chunk.usage:
+    print(f"최종 토큰 수: {last_chunk.usage.total_tokens}")
+```
+
+## 응답 구성
+
+### 전체 응답 누적
+
+```python
+response_parts = []
+
+async for chunk in agent.stream("안녕"):
+    response_parts.append(chunk.delta)
+
+full_response = "".join(response_parts)
+print(f"전체 응답: {full_response}")
+```
+
+또는 이미 누적된 `content` 필드 사용:
+
+```python
+last_chunk = None
+
+async for chunk in agent.stream("안녕"):
     last_chunk = chunk
 
 full_response = last_chunk.content if last_chunk else ""
 ```
 
-### Display in Real-Time
+### 실시간 표시
 
 ```python
-async for chunk in agent.stream("Write a poem"):
-    # Print immediately as tokens arrive
+async for chunk in agent.stream("시 써줘"):
+    # 토큰이 도착하는 즉시 출력
     print(chunk.delta, end="", flush=True)
 
-print()  # Final newline
+print()  # 마지막 줄바꿈
 ```
 
-### Hybrid: Buffer and Display
+### 버퍼링과 표시 혼합
 
 ```python
 buffer = ""
-buffer_size = 5  # Buffer until we have 5 chars
+buffer_size = 5  # 5글자가 될 때까지 버퍼링
 
-async for chunk in agent.stream("Tell a story"):
+async for chunk in agent.stream("이야기 들려줘"):
     buffer += chunk.delta
 
     if len(buffer) >= buffer_size or chunk.finish_reason:
@@ -242,99 +225,70 @@ async for chunk in agent.stream("Tell a story"):
         buffer = ""
 ```
 
-## Error Handling
+## 에러 처리
 
-Streaming can raise exceptions:
+스트리밍 중 예외가 발생할 수 있습니다:
 
 ```python
 try:
-    async for chunk in agent.stream("Query"):
+    async for chunk in agent.stream("쿼리"):
         print(chunk.delta, end="", flush=True)
 except asyncio.TimeoutError:
-    print("\nStream timed out")
+    print("\n스트림 타임아웃")
 except Exception as e:
-    print(f"\nStream error: {e}")
+    print(f"\n스트림 에러: {e}")
 ```
 
-The stream can fail at any point:
+스트림은 언제든지 실패할 수 있습니다:
 
 ```python
 content = ""
 
 try:
-    async for chunk in agent.stream("Query"):
+    async for chunk in agent.stream("쿼리"):
         content += chunk.delta
         print(chunk.delta, end="", flush=True)
 except Exception as e:
-    # Partial content is available
-    print(f"\nError after: {len(content)} characters")
-    print(f"Partial result: {content}")
+    # 부분적인 내용은 사용 가능
+    print(f"\n{len(content)}글자 후 에러 발생")
+    print(f"부분 결과: {content}")
 ```
 
-## Advanced Usage
+## 고급 사용법
 
-### Custom Streaming Handler
+### 커스텀 스트리밍 핸들러
 
 ```python
 async def stream_with_handler(agent, prompt, handler):
-    """Stream with custom processing."""
+    """커스텀 처리로 스트리밍."""
     async for chunk in agent.stream(prompt):
-        # Custom handler for each chunk
         await handler(chunk)
 
 async def my_handler(chunk):
-    """Example handler."""
     if chunk.delta:
         print(f"[CHUNK] {chunk.delta}")
     if chunk.finish_reason:
         print(f"[DONE] usage={chunk.usage}")
 
-# Usage
-await stream_with_handler(agent, "Tell me a story", my_handler)
+# 사용
+await stream_with_handler(agent, "이야기 들려줘", my_handler)
 ```
 
-### Rate Limiting
-
-Slow down streaming for display:
-
-```python
-import asyncio
-
-async for chunk in agent.stream("Long response"):
-    print(chunk.delta, end="", flush=True)
-    await asyncio.sleep(0.01)  # 10ms per chunk
-```
-
-### Streaming to File
+### 파일로 스트리밍
 
 ```python
 with open("response.txt", "w") as f:
-    async for chunk in agent.stream("Write an essay"):
+    async for chunk in agent.stream("에세이 써줘"):
         f.write(chunk.delta)
-        f.flush()  # Flush after each chunk
+        f.flush()  # 각 청크 후 플러시
 ```
 
-### Streaming with Progress
-
-```python
-total_chars = 0
-
-async for chunk in agent.stream("Long response"):
-    total_chars += len(chunk.delta)
-    print(chunk.delta, end="", flush=True)
-
-    # Show progress
-    if total_chars % 100 == 0:
-        print(f" [{total_chars}]", end="\r", flush=True)
-```
-
-### Streaming to WebSocket
+### WebSocket으로 스트리밍
 
 ```python
 async def stream_to_websocket(agent, prompt, websocket):
-    """Stream response to WebSocket client."""
+    """WebSocket 클라이언트로 응답 스트리밍."""
     async for chunk in agent.stream(prompt):
-        # Send each chunk to client
         await websocket.send_json({
             "type": "chunk",
             "delta": chunk.delta,
@@ -343,233 +297,186 @@ async def stream_to_websocket(agent, prompt, websocket):
         })
 ```
 
-### Collecting All Chunks
+### 모든 청크 수집
 
 ```python
 chunks = []
 
-async for chunk in agent.stream("Query"):
+async for chunk in agent.stream("쿼리"):
     chunks.append(chunk)
 
-# Analyze stream
-print(f"Total chunks: {len(chunks)}")
-print(f"Total tokens: {chunks[-1].usage.total_tokens}")
-print(f"Avg chunk size: {sum(len(c.delta) for c in chunks) / len(chunks):.1f} chars")
+print(f"총 청크: {len(chunks)}")
+print(f"총 토큰: {chunks[-1].usage.total_tokens}")
+print(f"평균 청크 크기: {sum(len(c.delta) for c in chunks) / len(chunks):.1f}글자")
 ```
 
-## Provider-Specific Notes
+## 프로바이더별 참고사항
 
-### OpenAI
-
-Full streaming support. Works with all models.
+모든 프로바이더는 동일한 스트리밍 인터페이스를 사용합니다:
 
 ```python
+# OpenAI - 완전한 스트리밍 지원
 agent = Agent(model="gpt-4o-mini")
-
-async for chunk in agent.stream("Hello"):
+async for chunk in agent.stream("안녕"):
     print(chunk.delta, end="", flush=True)
-```
 
-### Anthropic
-
-Full streaming support. Works with Claude models.
-
-```python
+# Anthropic - 완전한 스트리밍 지원
 agent = Agent(model="claude-3-5-sonnet")
-
-async for chunk in agent.stream("Hello"):
+async for chunk in agent.stream("안녕"):
     print(chunk.delta, end="", flush=True)
-```
 
-### Gemini
-
-Full streaming support. Works with Gemini models.
-
-```python
+# Gemini - 완전한 스트리밍 지원
 agent = Agent(model="gemini-2.0-flash")
-
-async for chunk in agent.stream("Hello"):
+async for chunk in agent.stream("안녕"):
     print(chunk.delta, end="", flush=True)
-```
 
-### Ollama
-
-Full streaming support. Works with local models.
-
-```python
+# Ollama - 완전한 스트리밍 지원
 agent = Agent(model="ollama/llama3.2")
-
-async for chunk in agent.stream("Hello"):
+async for chunk in agent.stream("안녕"):
     print(chunk.delta, end="", flush=True)
 ```
 
-## Performance Considerations
+## 성능 고려사항
 
-### Token Efficiency
+### 토큰 효율성
 
-Streaming is equally token-efficient - you pay per token regardless:
+스트리밍 여부와 상관없이 동일한 토큰 비용이 발생합니다:
 
 ```python
-# Same cost regardless of streaming or not
-result1 = agent.run_sync("Write a poem")  # 150 tokens
-result2 = await agent.stream("Write a poem")  # 150 tokens (accumulated)
+# 스트리밍 여부와 무관하게 동일한 비용
+result1 = agent.run_sync("시 써줘")  # 150 토큰
+# result2 스트리밍도 동일하게 150 토큰 사용
 ```
 
-### Memory Usage
+### 지연 시간
 
-Streaming uses less memory per chunk:
-
-```python
-# Without streaming: entire response in memory
-result = agent.run_sync("Long response")  # Entire response in memory
-
-# With streaming: one chunk at a time
-async for chunk in agent.stream("Long response"):  # ~100-200 chars per chunk
-    print(chunk.delta)
-```
-
-### Latency
-
-Streaming gives better user experience - show content as it arrives:
+스트리밍은 더 나은 사용자 경험을 제공합니다. 전체 응답을 기다리지 않고 첫 토큰이 도착하는 즉시 표시됩니다:
 
 ```python
-# Without streaming: Wait for entire response
+import time
+
+# 스트리밍 없음: 전체 응답 대기
 start = time.time()
-result = agent.run_sync("Query")
+result = agent.run_sync("쿼리")
 elapsed = time.time() - start
-# User sees nothing for `elapsed` seconds, then full response
+# 사용자는 elapsed초 동안 아무것도 볼 수 없음
 
-# With streaming: Show content immediately
+# 스트리밍: 콘텐츠를 즉시 표시
 start = time.time()
 first_chunk = True
-async for chunk in agent.stream("Query"):
+async for chunk in agent.stream("쿼리"):
     if first_chunk:
-        print(f"First token in {time.time() - start:.2f}s")
+        print(f"첫 토큰: {time.time() - start:.2f}초 후")
         first_chunk = False
     print(chunk.delta, end="", flush=True)
-# User sees content starting within ~100-200ms
+# 약 100-200ms 내에 콘텐츠가 표시되기 시작
 ```
 
-## Best Practices
+## 베스트 프랙티스
 
-### 1. Always Use `flush=True` for Real-Time Display
+### 1. 실시간 표시에는 항상 `flush=True`
 
 ```python
-# Good: shows content immediately
-async for chunk in agent.stream("Query"):
+# 좋음: 즉시 콘텐츠 표시
+async for chunk in agent.stream("쿼리"):
     print(chunk.delta, end="", flush=True)
 
-# Bad: content may be buffered and appear in batches
-async for chunk in agent.stream("Query"):
-    print(chunk.delta, end="")  # No flush
+# 나쁨: 콘텐츠가 버퍼링되어 일괄 표시될 수 있음
+async for chunk in agent.stream("쿼리"):
+    print(chunk.delta, end="")  # flush 없음
 ```
 
-### 2. Handle Errors Gracefully
+### 2. 에러를 우아하게 처리
 
 ```python
-# Good: handle interruption
+# 좋음: 중단 처리
 try:
-    async for chunk in agent.stream("Query"):
+    async for chunk in agent.stream("쿼리"):
         print(chunk.delta, end="", flush=True)
 except Exception as e:
-    print(f"\nError: {e}")
-
-# Bad: no error handling
-async for chunk in agent.stream("Query"):
-    print(chunk.delta, end="", flush=True)  # Crashes silently
+    print(f"\n에러: {e}")
 ```
 
-### 3. Check `finish_reason` for Completion
+### 3. 완료 확인에 `finish_reason` 체크
 
 ```python
-# Good: explicit completion check
-async for chunk in agent.stream("Query"):
+# 명시적 완료 확인
+async for chunk in agent.stream("쿼리"):
     print(chunk.delta, end="", flush=True)
     if chunk.finish_reason == "stop":
-        print("\n[Complete]")
+        print("\n[완료]")
         break
-
-# Less clear: rely on loop ending
-async for chunk in agent.stream("Query"):
-    print(chunk.delta, end="", flush=True)
-print("\n[Done]")  # Did it actually finish or error?
 ```
 
-### 4. Collect Usage on Last Chunk
+### 4. 마지막 청크에서 사용량 수집
 
 ```python
-# Good: only check usage on last chunk
+# 좋음: 마지막 청크에서만 사용량 확인
 final_chunk = None
 
-async for chunk in agent.stream("Query"):
+async for chunk in agent.stream("쿼리"):
     final_chunk = chunk
     print(chunk.delta, end="", flush=True)
 
 if final_chunk and final_chunk.usage:
-    print(f"Tokens: {final_chunk.usage.total_tokens}")
-
-# Bad: usage is None until last chunk
-async for chunk in agent.stream("Query"):
-    print(f"Usage: {chunk.usage}")  # Prints None repeatedly
+    print(f"토큰: {final_chunk.usage.total_tokens}")
 ```
 
-### 5. Use Streaming for Long Responses
+### 5. 긴 응답에 스트리밍 사용
 
 ```python
-# Good: stream for interactive experience
-async for chunk in agent.stream("Write a 1000-word essay"):
+# 좋음: 인터랙티브한 경험을 위한 스트리밍
+async for chunk in agent.stream("1000단어 에세이 써줘"):
     print(chunk.delta, end="", flush=True)
 
-# Less ideal for long responses: wait for full result
-result = agent.run_sync("Write a 1000-word essay")
-print(result.output)  # Long wait before any output
+# 긴 응답에서는 덜 이상적: 전체 결과를 위한 오랜 대기
+result = agent.run_sync("1000단어 에세이 써줘")
+print(result.output)  # 출력 전 오랜 대기
 ```
 
-## Complete Example
+## 완전한 예제
 
 ```python
 import asyncio
-from agentweave import Agent, tool
+from agentchord import Agent, tool
 
-@tool(description="Get word count")
+@tool(description="단어 수 계산")
 def word_count(text: str) -> int:
     return len(text.split())
 
 async def main():
     agent = Agent(
         name="writer",
-        role="Essay writer",
+        role="에세이 작가",
         model="gpt-4o-mini",
         tools=[word_count]
     )
 
-    # Stream a response
-    print("Essay:")
+    print("에세이:")
     print("-" * 40)
 
     total_chars = 0
-    async for chunk in agent.stream("Write a short essay about AI"):
+    last_chunk = None
+
+    async for chunk in agent.stream("AI에 대한 짧은 에세이 써줘"):
         print(chunk.delta, end="", flush=True)
         total_chars += len(chunk.delta)
-
-        # Show progress every 200 chars
-        if total_chars > 0 and total_chars % 200 == 0:
-            print(f" [{total_chars}]", end="\r", flush=True)
+        last_chunk = chunk
 
     print("\n" + "-" * 40)
 
-    # After streaming completes, usage is available
-    if chunk.finish_reason == "stop":
-        print(f"\nTokens used: {chunk.usage.total_tokens}")
-        print(f"Total characters: {total_chars}")
+    # 스트리밍 완료 후 사용량 확인 가능
+    if last_chunk and last_chunk.finish_reason == "stop" and last_chunk.usage:
+        print(f"\n사용 토큰: {last_chunk.usage.total_tokens}")
+        print(f"총 글자 수: {total_chars}")
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-## See Also
+## 참고
 
-- [Tools Guide](tools.md) - Use tools with streaming
-- [Providers Guide](providers.md) - Stream with different providers
-- [Agent Documentation](../api/core.md) - Agent API details
-- [Examples](../examples.md) - Complete streaming examples
+- [도구 가이드](tools.md) - 스트리밍과 함께 도구 사용
+- [프로바이더 가이드](providers.md) - 다양한 프로바이더로 스트리밍
+- [Agent API](../api/core.md) - Agent API 상세 정보
+- [예제](../examples.md) - 스트리밍 전체 예제

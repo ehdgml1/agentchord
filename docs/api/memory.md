@@ -1,351 +1,381 @@
-# Memory API Reference
+# 메모리 API 레퍼런스
 
-Complete API reference for memory systems that enable agents to retain and retrieve context.
+에이전트가 컨텍스트를 보관하고 검색할 수 있게 해주는 메모리 시스템에 대한 완전한 API 레퍼런스입니다.
+
+---
 
 ## MemoryEntry
 
-A single entry in agent memory.
+메모리에 저장되는 단일 항목입니다.
 
 ```python
-from agentweave.memory import MemoryEntry
+from agentchord.memory.base import MemoryEntry
 from datetime import datetime
 
 entry = MemoryEntry(
-    content="The capital of France is Paris",
+    content="파이썬은 범용 프로그래밍 언어입니다.",
     role="assistant",
-    metadata={"source": "wikipedia"}
+    metadata={"source": "wiki", "confidence": 0.95},
 )
+
+print(entry.id)        # 자동 생성된 UUID
+print(entry.timestamp) # 생성 시각
 ```
 
-**Fields:**
+**필드:**
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `id` | `str` | UUID | Unique entry identifier |
-| `content` | `str` | Required | Entry content/text |
-| `role` | `str` | "user" | Role: user, assistant, system |
-| `timestamp` | `datetime` | now() | When entry was created |
-| `metadata` | `dict[str, Any]` | {} | Additional metadata |
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `id` | `str` | 자동 UUID | 항목 고유 식별자 |
+| `content` | `str` | 필수 | 메모리 내용 |
+| `role` | `str` | `"user"` | 발신자 역할 (`"user"`, `"assistant"`, `"system"`) |
+| `timestamp` | `datetime` | 현재 시각 | 생성 시각 |
+| `metadata` | `dict[str, Any]` | `{}` | 추가 메타데이터 |
 
-**Example:**
-
-```python
-entry = MemoryEntry(
-    content="Python is a programming language",
-    role="assistant",
-    metadata={"category": "programming", "confidence": 0.95}
-)
-print(entry.id)        # UUID string
-print(entry.timestamp) # datetime
-```
+---
 
 ## BaseMemory
 
-Abstract base class for memory implementations.
+모든 메모리 구현이 따라야 하는 추상 기본 클래스입니다.
 
 ```python
-from agentweave.memory import BaseMemory, MemoryEntry
-from abc import ABC, abstractmethod
+from agentchord.memory.base import BaseMemory, MemoryEntry
 
-class CustomMemory(BaseMemory):
+class MyMemory(BaseMemory):
     def add(self, entry: MemoryEntry) -> None:
-        # Implementation
-        pass
-
+        ...
     def get(self, entry_id: str) -> MemoryEntry | None:
-        # Implementation
-        pass
-
+        ...
     def get_recent(self, limit: int = 10) -> list[MemoryEntry]:
-        # Implementation
-        pass
-
+        ...
     def search(self, query: str, limit: int = 5) -> list[MemoryEntry]:
-        # Implementation
-        pass
-
+        ...
     def clear(self) -> None:
-        # Implementation
-        pass
-
+        ...
     def __len__(self) -> int:
-        # Implementation
-        pass
+        ...
 ```
 
-**Methods:**
+**추상 메서드:**
 
-| Method | Signature | Returns | Description |
-|--------|-----------|---------|-------------|
-| `add` | `add(entry: MemoryEntry) -> None` | `None` | Add entry to memory (abstract) |
-| `get` | `get(entry_id: str) -> MemoryEntry \| None` | `MemoryEntry \| None` | Get entry by ID (abstract) |
-| `get_recent` | `get_recent(limit: int = 10) -> list[MemoryEntry]` | `list[MemoryEntry]` | Get N most recent entries (abstract) |
-| `search` | `search(query: str, limit: int = 5) -> list[MemoryEntry]` | `list[MemoryEntry]` | Search entries by query (abstract) |
-| `clear` | `clear() -> None` | `None` | Clear all entries (abstract) |
-| `__len__` | `__len__() -> int` | `int` | Get number of entries (abstract) |
+| 메서드 | 시그니처 | 반환값 | 설명 |
+|--------|---------|--------|------|
+| `add` | `add(entry: MemoryEntry) -> None` | `None` | 항목 추가 |
+| `get` | `get(entry_id: str) -> MemoryEntry \| None` | `MemoryEntry \| None` | ID로 항목 조회 |
+| `get_recent` | `get_recent(limit: int = 10) -> list[MemoryEntry]` | `list[MemoryEntry]` | 최근 항목 목록 반환 |
+| `search` | `search(query: str, limit: int = 5) -> list[MemoryEntry]` | `list[MemoryEntry]` | 쿼리로 항목 검색 |
+| `clear` | `clear() -> None` | `None` | 모든 항목 삭제 |
+| `__len__` | `__len__() -> int` | `int` | 저장된 항목 수 반환 |
+
+---
 
 ## ConversationMemory
 
-Stores conversation history between agent and user.
+슬라이딩 윈도우 방식의 대화 기록 메모리입니다. 가장 오래된 항목부터 자동으로 제거합니다.
 
 ```python
-from agentweave.memory import ConversationMemory, MemoryEntry
-from agentweave.core import Agent
+from agentchord.memory.conversation import ConversationMemory
+from agentchord.memory.base import MemoryEntry
+from agentchord import Agent
 
-# Create memory
-memory = ConversationMemory(max_entries=1000)
-
-# Create agent with memory
-agent = Agent(
-    name="assistant",
-    role="You are helpful",
-    memory=memory
-)
-
-# Memory persists across runs
-result1 = await agent.run("My name is Alice")
-result2 = await agent.run("What is my name?")  # Agent remembers from memory
-
-# Access memory directly
-recent = memory.get_recent(limit=5)
-for entry in recent:
-    print(f"{entry.role}: {entry.content}")
-
-# Search memory
-results = memory.search("Python", limit=3)
-```
-
-**Constructor Parameters:**
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `max_entries` | `int` | 1000 | Maximum entries to store |
-
-**Methods:**
-
-Inherits from `BaseMemory`:
-- `add(entry: MemoryEntry) -> None` - Add conversation entry
-- `get(entry_id: str) -> MemoryEntry | None` - Get entry by ID
-- `get_recent(limit: int = 10) -> list[MemoryEntry]` - Get recent entries
-- `search(query: str, limit: int = 5) -> list[MemoryEntry]` - Search by content
-- `clear() -> None` - Clear all entries
-- `__len__() -> int` - Get entry count
-
-**Example:**
-
-```python
+# 기본 사용
 memory = ConversationMemory(max_entries=100)
 
-# Add entries
-user_msg = MemoryEntry(content="What is AI?", role="user")
-assist_msg = MemoryEntry(content="AI is...", role="assistant")
+memory.add(MemoryEntry(content="파이썬이 뭔가요?", role="user"))
+memory.add(MemoryEntry(content="파이썬은 범용 언어입니다.", role="assistant"))
 
-memory.add(user_msg)
-memory.add(assist_msg)
+print(len(memory))          # 2
+recent = memory.get_recent(5)  # 최근 5개
+results = memory.search("파이썬")  # 키워드 검색
 
-# Retrieve
-recent = memory.get_recent(limit=10)
-assert len(recent) == 2
+# 영속 저장소와 함께 사용
+from agentchord.memory.stores import SQLiteStore
+store = SQLiteStore("memory.db")
+memory = ConversationMemory(max_entries=1000, store=store, namespace="user_123")
 
-# Search
-results = memory.search("AI", limit=5)
-assert len(results) > 0
+await memory.load_from_store()  # 저장소에서 불러오기
+# ... 에이전트 사용 ...
+await memory.save_to_store()    # 저장소에 저장
 
-# Clear
-memory.clear()
-assert len(memory) == 0
+# 에이전트에 연결
+agent = Agent(name="bot", role="...", memory=memory)
 ```
+
+**생성자 파라미터:**
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `max_entries` | `int` | `1000` | 최대 저장 항목 수. 초과 시 가장 오래된 항목 삭제 |
+| `store` | `MemoryStore \| None` | `None` | 영속 저장소 백엔드 |
+| `namespace` | `str` | `"default"` | 영속 저장소에서 사용할 네임스페이스 (에이전트 ID, 세션 ID 등) |
+
+**메서드:**
+
+| 메서드 | 시그니처 | 반환값 | 설명 |
+|--------|---------|--------|------|
+| `add` | `add(entry: MemoryEntry) -> None` | `None` | 대화 기록에 항목 추가. 저장소가 있으면 자동 저장 |
+| `get` | `get(entry_id: str) -> MemoryEntry \| None` | `MemoryEntry \| None` | ID로 항목 조회 |
+| `get_recent` | `get_recent(limit: int = 10) -> list[MemoryEntry]` | `list[MemoryEntry]` | 최근 항목을 시간 순서로 반환 |
+| `search` | `search(query: str, limit: int = 5) -> list[MemoryEntry]` | `list[MemoryEntry]` | 내용에서 부분 문자열 검색 (대소문자 무시) |
+| `clear` | `clear() -> None` | `None` | 모든 대화 기록 삭제 |
+| `to_messages` | `to_messages() -> list[dict[str, str]]` | `list[dict]` | LLM 메시지 형식으로 변환 (`{"role": ..., "content": ...}` 목록) |
+| `load_from_store` | `async load_from_store() -> int` | `int` | 영속 저장소에서 항목 로드. 로드된 항목 수 반환 |
+| `save_to_store` | `async save_to_store() -> int` | `int` | 현재 항목을 영속 저장소에 저장. 저장된 항목 수 반환 |
+
+**프로퍼티:**
+
+| 프로퍼티 | 타입 | 설명 |
+|----------|------|------|
+| `max_entries` | `int` | 최대 저장 항목 수 |
+
+---
 
 ## SemanticMemory
 
-Stores entries with semantic similarity search.
+벡터 유사도 검색을 사용하는 시맨틱 메모리입니다. 임베딩 함수를 통해 의미적으로 유사한 항목을 검색합니다.
 
 ```python
-from agentweave.memory import SemanticMemory, MemoryEntry
+from agentchord.memory.semantic import SemanticMemory
+from agentchord.memory.base import MemoryEntry
+import openai
 
-# Create semantic memory
+# 임베딩 함수 정의
+client = openai.AsyncOpenAI()
+
+def embed(text: str) -> list[float]:
+    response = client.embeddings.create(
+        input=text,
+        model="text-embedding-3-small"
+    )
+    return response.data[0].embedding
+
+# 메모리 생성
 memory = SemanticMemory(
-    max_entries=500,
-    similarity_threshold=0.5
+    embedding_func=embed,
+    similarity_threshold=0.7,
 )
 
-# Add entries
-memory.add(MemoryEntry(
-    content="Python is a programming language",
-    role="assistant"
-))
+memory.add(MemoryEntry(content="파리는 프랑스의 수도입니다."))
+memory.add(MemoryEntry(content="도쿄는 일본의 수도입니다."))
 
-memory.add(MemoryEntry(
-    content="JavaScript runs in browsers",
-    role="assistant"
-))
-
-# Search by semantic similarity
-results = memory.search("programming languages", limit=3)
-# Returns entries semantically similar to query
+# 의미 검색
+results = memory.search("유럽의 수도 도시", limit=3)
+for entry in results:
+    print(entry.content)
 ```
 
-**Constructor Parameters:**
+**생성자 파라미터:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `max_entries` | `int` | 500 | Maximum entries to store |
-| `similarity_threshold` | `float` | 0.5 | Minimum similarity score (0-1) |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `embedding_func` | `Callable[[str], list[float]]` | 필수 | 텍스트를 임베딩 벡터로 변환하는 함수 |
+| `similarity_threshold` | `float` | `0.5` | 검색 결과 최소 유사도 (0~1). 낮을수록 더 많은 결과 반환 |
 
-**Methods:**
+**메서드:**
 
-Inherits from `BaseMemory`:
-- `add(entry: MemoryEntry) -> None` - Add entry
-- `get(entry_id: str) -> MemoryEntry | None` - Get entry by ID
-- `get_recent(limit: int = 10) -> list[MemoryEntry]` - Get recent entries
-- `search(query: str, limit: int = 5) -> list[MemoryEntry]` - Semantic similarity search
-- `clear() -> None` - Clear all entries
-- `__len__() -> int` - Get entry count
+| 메서드 | 시그니처 | 반환값 | 설명 |
+|--------|---------|--------|------|
+| `add` | `add(entry: MemoryEntry) -> None` | `None` | 임베딩을 계산하여 항목 추가 |
+| `add_with_embedding` | `add_with_embedding(entry: MemoryEntry, embedding: list[float]) -> None` | `None` | 미리 계산된 임베딩으로 항목 추가 (재계산 방지) |
+| `get` | `get(entry_id: str) -> MemoryEntry \| None` | `MemoryEntry \| None` | ID로 항목 조회 |
+| `get_embedding` | `get_embedding(entry_id: str) -> list[float] \| None` | `list[float] \| None` | 항목의 임베딩 벡터 반환 |
+| `get_recent` | `get_recent(limit: int = 10) -> list[MemoryEntry]` | `list[MemoryEntry]` | 최근 항목을 타임스탬프 순서로 반환 |
+| `search` | `search(query: str, limit: int = 5) -> list[MemoryEntry]` | `list[MemoryEntry]` | 의미적으로 유사한 항목 검색 (유사도 높은 순) |
+| `search_by_embedding` | `search_by_embedding(query_embedding: list[float], limit: int = 5) -> list[MemoryEntry]` | `list[MemoryEntry]` | 미리 계산된 임베딩으로 검색 |
+| `remove` | `remove(entry_id: str) -> bool` | `bool` | ID로 항목 삭제. 성공 시 True |
+| `clear` | `clear() -> None` | `None` | 모든 항목과 임베딩 삭제 |
+
+**프로퍼티:**
+
+| 프로퍼티 | 타입 | 설명 |
+|----------|------|------|
+| `similarity_threshold` | `float` | 검색 결과 최소 유사도 임계값 |
+
+---
 
 ## WorkingMemory
 
-Key-value store for facts and state during execution.
+TTL(만료 시간)이 있는 임시 키-값 저장소입니다. 다단계 작업에서 중간 결과나 컨텍스트를 저장하는 데 유용합니다.
 
 ```python
-from agentweave.memory import WorkingMemory
-from agentweave.core import Agent
+from agentchord.memory.working import WorkingMemory
 
-# Create working memory
-working_mem = WorkingMemory(default_ttl=3600)
+memory = WorkingMemory(default_ttl=300, max_items=50)  # 5분 TTL, 최대 50개
 
-# Create agent
-agent = Agent(
-    name="processor",
-    role="You process data",
-    memory=working_mem
-)
+# 값 저장
+memory.set("current_step", 1)
+memory.set("result", {"data": [1, 2, 3]})
+memory.set("temp_value", "임시 데이터", ttl=60)  # 개별 TTL 60초
 
-# Agent can store values
-working_mem.set("user_id", "12345")
-working_mem.set("processed_count", 0, ttl=300)  # 5 min TTL
+# 값 조회
+step = memory.get_value("current_step")       # 1
+missing = memory.get_value("missing", "기본값") # "기본값"
 
-# Retrieve values
-user_id = working_mem.get("user_id")
-count = working_mem.get("processed_count")
+# 키 존재 확인
+if memory.has("current_step"):
+    print("존재함")
 
-# Delete value
-working_mem.delete("user_id")
+# 숫자 증가
+memory.set("counter", 0)
+new_val = memory.increment("counter")      # 1
+new_val = memory.increment("counter", 5)   # 6
 
-# List keys
-keys = working_mem.keys()
+# 목록 조회
+print(memory.keys())    # 만료되지 않은 키 목록
+print(memory.items())   # [(key, value), ...] 목록
 
-# Clear all
-working_mem.clear()
+# 삭제
+memory.remove("temp_value")
+memory.clear()
 ```
 
-**Constructor Parameters:**
+**생성자 파라미터:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `default_ttl` | `int \| None` | None | Default TTL in seconds (None = no expiry) |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `default_ttl` | `float \| None` | `None` | 기본 만료 시간 (초). None이면 만료 없음 |
+| `max_items` | `int` | `100` | 최대 저장 항목 수. 초과 시 우선순위가 낮고 오래된 항목부터 제거 |
 
-**Methods:**
+**메서드:**
 
-| Method | Signature | Returns | Description |
-|--------|-----------|---------|-------------|
-| `set` | `set(key: str, value: Any, ttl: int \| None = None) -> None` | `None` | Store key-value pair |
-| `get` | `get(key: str) -> Any \| None` | `Any \| None` | Retrieve value by key |
-| `delete` | `delete(key: str) -> None` | `None` | Delete key-value pair |
-| `keys` | `keys() -> list[str]` | `list[str]` | Get all keys |
-| `clear` | `clear() -> None` | `None` | Clear all entries |
+| 메서드 | 시그니처 | 반환값 | 설명 |
+|--------|---------|--------|------|
+| `set` | `set(key: str, value: Any, ttl: float \| None = None, priority: int = 0) -> None` | `None` | 값 저장. `ttl` 미지정 시 `default_ttl` 사용 |
+| `get_value` | `get_value(key: str, default: Any = None) -> Any` | `Any` | 값 조회. 없거나 만료된 경우 default 반환 |
+| `has` | `has(key: str) -> bool` | `bool` | 키가 존재하고 만료되지 않았는지 확인 |
+| `remove` | `remove(key: str) -> bool` | `bool` | 키 삭제. 성공 시 True 반환 |
+| `increment` | `increment(key: str, amount: int = 1) -> int` | `int` | 숫자 값 증가. 비숫자 값이면 `TypeError` |
+| `keys` | `keys() -> list[str]` | `list[str]` | 만료되지 않은 모든 키 목록 |
+| `values` | `values() -> list[Any]` | `list[Any]` | 만료되지 않은 모든 값 목록 |
+| `items` | `items() -> list[tuple[str, Any]]` | `list[tuple]` | 만료되지 않은 모든 (키, 값) 쌍 목록 |
+| `clear` | `clear() -> None` | `None` | 모든 항목 삭제 |
 
-**Example:**
+---
+
+## MemoryStore
+
+메모리 영속 저장소의 추상 기본 클래스입니다.
 
 ```python
-memory = WorkingMemory(default_ttl=600)
+from agentchord.memory.stores.base import MemoryStore
+from agentchord.memory.base import MemoryEntry
 
-# Store facts
-memory.set("project_name", "AgentWeave")
-memory.set("version", "1.0.0")
-memory.set("request_count", 0)
-
-# Retrieve
-print(memory.get("project_name"))  # "AgentWeave"
-
-# Increment counter
-count = memory.get("request_count") or 0
-memory.set("request_count", count + 1)
-
-# Keys
-print(memory.keys())  # ["project_name", "version", "request_count"]
-
-# Delete
-memory.delete("project_name")
-print(memory.get("project_name"))  # None
+class MyStore(MemoryStore):
+    async def save(self, namespace: str, entry: MemoryEntry) -> None: ...
+    async def save_many(self, namespace: str, entries: list[MemoryEntry]) -> None: ...
+    async def load(self, namespace: str) -> list[MemoryEntry]: ...
+    async def delete(self, namespace: str, entry_id: str) -> bool: ...
+    async def clear(self, namespace: str) -> None: ...
+    async def count(self, namespace: str) -> int: ...
 ```
 
-## Complete Example: Multi-Memory Agent
+**추상 메서드:**
+
+| 메서드 | 시그니처 | 반환값 | 설명 |
+|--------|---------|--------|------|
+| `save` | `async save(namespace: str, entry: MemoryEntry) -> None` | `None` | 단일 항목 저장 |
+| `save_many` | `async save_many(namespace: str, entries: list[MemoryEntry]) -> None` | `None` | 여러 항목 원자적으로 저장 (기존 항목 교체) |
+| `load` | `async load(namespace: str) -> list[MemoryEntry]` | `list[MemoryEntry]` | 네임스페이스의 모든 항목 로드 |
+| `delete` | `async delete(namespace: str, entry_id: str) -> bool` | `bool` | 특정 항목 삭제. 성공 시 True |
+| `clear` | `async clear(namespace: str) -> None` | `None` | 네임스페이스의 모든 항목 삭제 |
+| `count` | `async count(namespace: str) -> int` | `int` | 네임스페이스의 항목 수 반환 |
+
+---
+
+## JSONFileStore
+
+JSON 파일 기반 메모리 저장소입니다.
+
+디렉토리 구조:
+```
+base_dir/
+  namespace1/
+    entries.json
+  namespace2/
+    entries.json
+```
 
 ```python
-from agentweave.memory import ConversationMemory, WorkingMemory
-from agentweave.core import Agent
+from agentchord.memory.stores.json_file import JSONFileStore
+from agentchord.memory.conversation import ConversationMemory
 
-# Create both memory types
-conversation = ConversationMemory(max_entries=1000)
-working = WorkingMemory(default_ttl=3600)
+store = JSONFileStore("./memory_data")
 
-# Create agent with primary memory
-agent = Agent(
-    name="researcher",
-    role="You are a research assistant",
-    memory=conversation
-)
+# ConversationMemory와 함께 사용
+memory = ConversationMemory(max_entries=500, store=store, namespace="agent_1")
+await memory.load_from_store()
 
-# Use working memory for temporary facts
-working.set("research_topic", "Machine Learning")
-working.set("sources_found", 0)
-
-# Run agent
-result = await agent.run("Find information about deep learning")
-
-# Retrieve from conversation memory
-recent = conversation.get_recent(limit=5)
-print(f"Recent messages: {len(recent)}")
-
-# Search conversation history
-ml_results = conversation.search("machine learning", limit=10)
-print(f"ML-related entries: {len(ml_results)}")
-
-# Update working memory
-sources = working.get("sources_found") or 0
-working.set("sources_found", sources + 1)
+# 직접 사용
+entries = await store.load("agent_1")
+await store.save("agent_1", entry)
+await store.clear("agent_1")
+count = await store.count("agent_1")
 ```
 
-## Memory Best Practices
+**생성자 파라미터:**
 
-1. **Choose Right Memory Type**:
-   - Use `ConversationMemory` for conversation history
-   - Use `SemanticMemory` for semantic search
-   - Use `WorkingMemory` for temporary facts
+| 파라미터 | 타입 | 설명 |
+|----------|------|------|
+| `base_dir` | `str \| Path` | 네임스페이스 폴더를 저장할 기본 디렉토리 |
 
-2. **Set Appropriate Limits**:
-   ```python
-   # Balance memory capacity with performance
-   memory = ConversationMemory(max_entries=100)  # Smaller for low-latency
-   memory = ConversationMemory(max_entries=10000)  # Larger for long conversations
-   ```
+> **보안 주의:** 네임스페이스에 `..`이나 `/`가 포함된 경우 경로 탐색 공격을 방지하기 위해 `ValueError`가 발생합니다.
 
-3. **Use TTL for Temporary Data**:
-   ```python
-   working = WorkingMemory(default_ttl=300)  # 5 min expiry
-   working.set("temp_token", "abc123", ttl=60)  # 1 min expiry
-   ```
+---
 
-4. **Clear Memory When Needed**:
-   ```python
-   # Start fresh conversation
-   memory.clear()
-   ```
+## SQLiteStore
 
-5. **Search Efficiently**:
-   ```python
-   # Limit search results
-   results = memory.search("Python", limit=5)
-   ```
+SQLite 기반 비동기 메모리 저장소입니다. `aiosqlite` 패키지가 필요합니다.
 
-See the [Memory Guide](../guides/memory.md) for more usage examples.
+```python
+from agentchord.memory.stores.sqlite import SQLiteStore
+from agentchord.memory.conversation import ConversationMemory
+
+# 파일 기반 DB
+store = SQLiteStore("memory.db")
+
+# 인메모리 DB (테스트용)
+store = SQLiteStore(":memory:")
+
+# ConversationMemory와 함께 사용
+memory = ConversationMemory(max_entries=1000, store=store, namespace="session_abc")
+await memory.load_from_store()
+
+# 컨텍스트 매니저 지원
+async with SQLiteStore("memory.db") as store:
+    entries = await store.load("agent_1")
+    # ... 사용 ...
+# close() 자동 호출
+
+# 직접 사용
+await store.save("session_1", entry)
+await store.save_many("session_1", entries_list)
+entries = await store.load("session_1")
+deleted = await store.delete("session_1", entry_id)
+await store.clear("session_1")
+count = await store.count("session_1")
+await store.close()
+```
+
+**생성자 파라미터:**
+
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `db_path` | `str \| Path` | `":memory:"` | SQLite DB 파일 경로. `":memory:"`이면 인메모리 DB |
+
+**DB 스키마:**
+
+```sql
+CREATE TABLE memory_entries (
+    id TEXT PRIMARY KEY,
+    namespace TEXT NOT NULL,
+    content TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user',
+    timestamp TEXT NOT NULL,
+    metadata TEXT NOT NULL DEFAULT '{}',
+    UNIQUE(namespace, id)
+);
+```
+
+> **의존성:** `pip install aiosqlite`
+>
+> **인메모리 DB:** 동일한 SQLiteStore 인스턴스 내에서만 데이터가 유지됩니다. `close()` 호출 시 데이터가 사라집니다.

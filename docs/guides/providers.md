@@ -1,56 +1,56 @@
-# LLM Providers Guide
+# LLM 프로바이더 가이드
 
-AgentWeave supports multiple LLM providers through a unified interface. The framework automatically detects and creates the appropriate provider based on the model name.
+AgentChord는 통합 인터페이스를 통해 여러 LLM 프로바이더를 지원합니다. 모델 이름을 기반으로 적절한 프로바이더를 자동으로 감지하고 생성합니다.
 
-## Quick Start
+## 빠른 시작
 
-Change providers by simply changing the model string:
+모델 문자열만 바꾸면 프로바이더가 전환됩니다:
 
 ```python
-from agentweave import Agent
+from agentchord import Agent
 
 # OpenAI
-agent = Agent(name="ai", role="Helper", model="gpt-4o")
+agent = Agent(name="ai", role="도우미", model="gpt-4o")
 
 # Anthropic
-agent = Agent(name="ai", role="Helper", model="claude-3-5-sonnet")
+agent = Agent(name="ai", role="도우미", model="claude-3-5-sonnet")
 
 # Google Gemini
-agent = Agent(name="ai", role="Helper", model="gemini-2.0-flash")
+agent = Agent(name="ai", role="도우미", model="gemini-2.0-flash")
 
-# Ollama (local)
-agent = Agent(name="ai", role="Helper", model="ollama/llama3.2")
+# Ollama (로컬)
+agent = Agent(name="ai", role="도우미", model="ollama/llama3.2")
 ```
 
-No code changes needed - just swap the model name.
+코드 변경 없이 모델 이름만 바꾸면 됩니다.
 
 ## Provider Registry
 
-AgentWeave uses a registry system for managing providers:
+AgentChord는 레지스트리 시스템으로 프로바이더를 관리합니다:
 
 ```python
-from agentweave.llm.registry import get_registry
+from agentchord.llm.registry import get_registry
 
 registry = get_registry()
 
-# List all registered providers
+# 등록된 프로바이더 목록
 providers = registry.list_providers()
 print(providers)  # ["openai", "anthropic", "gemini", "ollama"]
 
-# Detect provider from model name
+# 모델 이름에서 프로바이더 감지
 provider_name = registry.detect_provider("gpt-4o")
 print(provider_name)  # "openai"
 
-# Create a provider
+# 프로바이더 생성
 provider = registry.create_provider("claude-3-5-sonnet")
 ```
 
-### Automatic Provider Detection
+### 자동 프로바이더 감지
 
-Model prefixes are mapped to providers:
+모델 접두사가 프로바이더로 매핑됩니다:
 
-| Provider | Model Prefixes | Examples |
-|----------|----------------|----------|
+| 프로바이더 | 모델 접두사 | 예시 |
+|-----------|------------|------|
 | OpenAI | `gpt-`, `o1`, `text-` | `gpt-4o`, `gpt-4o-mini`, `o1` |
 | Anthropic | `claude-` | `claude-3-5-sonnet`, `claude-3-haiku` |
 | Gemini | `gemini-` | `gemini-2.0-flash`, `gemini-1.5-pro` |
@@ -58,43 +58,43 @@ Model prefixes are mapped to providers:
 
 ## OpenAI
 
-OpenAI models via the official API.
+공식 OpenAI API를 통한 GPT 모델.
 
-### Available Models
+### 사용 가능한 모델
 
-- `gpt-4o` - Latest flagship model (recommended)
-- `gpt-4o-mini` - Faster, cheaper version
-- `gpt-4-turbo` - Previous generation
-- `gpt-3.5-turbo` - Older, very cheap
-- `o1` - Reasoning models
+- `gpt-4o` - 최신 플래그십 모델 (권장)
+- `gpt-4o-mini` - 더 빠르고 저렴한 버전
+- `gpt-4-turbo` - 이전 세대
+- `gpt-3.5-turbo` - 오래된 버전, 매우 저렴
+- `o1` - 추론 모델
 
-### Setup
+### 설정
 
 ```python
 import os
-from agentweave import Agent
+from agentchord import Agent
 
-# Set API key via environment variable
+# 환경 변수로 API 키 설정
 os.environ["OPENAI_API_KEY"] = "sk-..."
 
-# Create agent - API key is auto-detected
+# 에이전트 생성 - API 키 자동 감지
 agent = Agent(
     name="assistant",
-    role="Helpful AI",
+    role="도움이 되는 AI",
     model="gpt-4o",
     temperature=0.7,
     max_tokens=4096
 )
 
-result = agent.run_sync("Explain quantum computing")
+result = agent.run_sync("양자 컴퓨팅 설명해줘")
 print(result.output)
 ```
 
-### Custom Provider
+### 커스텀 프로바이더
 
 ```python
-from agentweave.llm.openai import OpenAIProvider
-from agentweave import Agent
+from agentchord.llm.openai import OpenAIProvider
+from agentchord import Agent
 
 provider = OpenAIProvider(
     model="gpt-4o",
@@ -103,59 +103,57 @@ provider = OpenAIProvider(
 
 agent = Agent(
     name="assistant",
-    role="Helpful AI",
+    role="도움이 되는 AI",
     llm_provider=provider
 )
 ```
 
-### Provider Cost Tracking
+### 비용 추적
 
-OpenAI costs are automatically calculated:
+OpenAI 비용이 자동으로 계산됩니다:
 
 ```python
-result = agent.run_sync("Hello")
-print(f"Cost: ${result.cost:.4f}")
-print(f"Tokens: {result.usage.total_tokens}")
+result = agent.run_sync("안녕")
+print(f"비용: ${result.cost:.4f}")
+print(f"토큰: {result.usage.total_tokens}")
 ```
-
-Pricing is built-in for current models. Custom pricing can be set via provider configuration.
 
 ## Anthropic
 
-Anthropic models (Claude) via their API.
+Anthropic API를 통한 Claude 모델.
 
-### Available Models
+### 사용 가능한 모델
 
-- `claude-3-5-sonnet-20241022` - Latest, best all-around
-- `claude-3-5-haiku-20241022` - Fast, efficient
-- `claude-3-opus-20250219` - Most capable
-- `claude-3-haiku` - Older version
+- `claude-3-5-sonnet-20241022` - 최신, 가장 균형적
+- `claude-3-5-haiku-20241022` - 빠르고 효율적
+- `claude-3-opus-20250219` - 가장 강력
+- `claude-3-haiku` - 이전 버전
 
-### Setup
+### 설정
 
 ```python
 import os
-from agentweave import Agent
+from agentchord import Agent
 
-# Set API key
+# API 키 설정
 os.environ["ANTHROPIC_API_KEY"] = "sk-ant-..."
 
 agent = Agent(
     name="assistant",
-    role="Expert analyst",
+    role="전문 분석가",
     model="claude-3-5-sonnet-20241022",
     temperature=0.7
 )
 
-result = agent.run_sync("Analyze this trend")
+result = agent.run_sync("이 트렌드 분석해줘")
 print(result.output)
 ```
 
-### Custom Provider
+### 커스텀 프로바이더
 
 ```python
-from agentweave.llm.anthropic import AnthropicProvider
-from agentweave import Agent
+from agentchord.llm.anthropic import AnthropicProvider
+from agentchord import Agent
 
 provider = AnthropicProvider(
     model="claude-3-5-sonnet-20241022",
@@ -164,162 +162,137 @@ provider = AnthropicProvider(
 
 agent = Agent(
     name="assistant",
-    role="Expert analyst",
+    role="전문 분석가",
     llm_provider=provider
 )
 ```
 
-### Provider Features
-
-- Supports extended thinking (if configured)
-- Vision capabilities with Claude 3.5 Sonnet
-- Streaming support
-
 ## Google Gemini
 
-Google's Gemini models via their API.
+Google Gemini API를 통한 Gemini 모델.
 
-### Available Models
+### 사용 가능한 모델
 
-- `gemini-2.0-flash` - Latest, very fast
-- `gemini-1.5-pro` - Most capable
-- `gemini-1.5-flash` - Faster variant
-- `gemini-pro` - Previous generation
+- `gemini-2.0-flash` - 최신, 매우 빠름
+- `gemini-1.5-pro` - 가장 강력
+- `gemini-1.5-flash` - 빠른 변형
+- `gemini-pro` - 이전 세대
 
-### Setup
+### 설정
 
 ```python
 import os
-from agentweave import Agent
+from agentchord import Agent
 
-# Set API key
+# API 키 설정
 os.environ["GOOGLE_API_KEY"] = "AIza..."
 
 agent = Agent(
     name="assistant",
-    role="Research helper",
+    role="리서치 도우미",
     model="gemini-2.0-flash",
     temperature=0.5
 )
 
-result = agent.run_sync("Summarize recent AI developments")
+result = agent.run_sync("최근 AI 발전 요약해줘")
 print(result.output)
 ```
 
-### Custom Provider
+### 커스텀 프로바이더
 
 ```python
-from agentweave.llm.gemini import GeminiProvider
-from agentweave import Agent
+from agentchord.llm.gemini import GeminiProvider
+from agentchord import Agent
 
 provider = GeminiProvider(
     model="gemini-2.0-flash",
-    api_key="AIza..."
+    api_key="AIza...",
+    base_url="https://generativelanguage.googleapis.com/v1beta"  # 선택사항
 )
 
 agent = Agent(
     name="assistant",
-    role="Research helper",
+    role="리서치 도우미",
     llm_provider=provider
 )
 ```
 
-### Base URL
+## Ollama (로컬)
 
-Customize the API endpoint:
+Ollama로 오픈 소스 모델을 로컬에서 실행합니다.
 
-```python
-provider = GeminiProvider(
-    model="gemini-2.0-flash",
-    api_key="AIza...",
-    base_url="https://generativelanguage.googleapis.com/v1beta"
-)
-```
-
-## Ollama (Local)
-
-Run open-source models locally with Ollama.
-
-### Installation
+### 설치
 
 ```bash
-# Install Ollama
+# Ollama 설치
 curl https://ollama.ai/install.sh | sh
 
-# Pull a model
+# 모델 다운로드
 ollama pull llama3.2
 ollama pull mistral
 ```
 
-### Available Models
+### 사용 가능한 모델
 
-- `ollama/llama3.2` - Meta's Llama 3.2
+- `ollama/llama3.2` - Meta의 Llama 3.2
 - `ollama/mistral` - Mistral 7B
 - `ollama/neural-chat` - Intel Neural Chat
 - `ollama/openchat` - OpenChat
-- Any model available on ollama.com
+- ollama.com에서 사용 가능한 모든 모델
 
-### Setup
+### 설정
 
 ```python
-from agentweave import Agent
+from agentchord import Agent
 
-# Ollama runs locally by default on port 11434
+# Ollama는 기본적으로 포트 11434에서 로컬 실행
 agent = Agent(
     name="local_assistant",
-    role="Local helper",
+    role="로컬 도우미",
     model="ollama/llama3.2",
     temperature=0.7
 )
 
-result = agent.run_sync("What are you?")
+result = agent.run_sync("당신은 무엇입니까?")
 print(result.output)
 ```
 
-### Custom Ollama Server
+### 커스텀 Ollama 서버
 
 ```python
-from agentweave.llm.ollama import OllamaProvider
-from agentweave import Agent
+from agentchord.llm.ollama import OllamaProvider
+from agentchord import Agent
 
 provider = OllamaProvider(
     model="llama3.2",
-    base_url="http://192.168.1.100:11434"  # Different host
+    base_url="http://192.168.1.100:11434"  # 다른 호스트
 )
 
 agent = Agent(
     name="remote_assistant",
-    role="Helper",
+    role="도우미",
     llm_provider=provider
 )
 ```
 
-### Free, Private, Fast
+### 하드웨어별 권장 모델
 
-- No API costs
-- Runs entirely locally
-- Data stays on your machine
-- Models vary in quality/speed
+| 하드웨어 | 권장 모델 | 비고 |
+|---------|---------|------|
+| 8GB RAM | `llama3.2:1b` | 가장 작고 빠름 |
+| 16GB RAM | `llama3.2:3b` 또는 `mistral` | 균형 잡힌 선택 |
+| 32GB+ RAM | `llama3.2:8b` | 더 좋은 품질 |
+| GPU | 모든 모델 | 훨씬 빠름 |
 
-### Selecting Models
+## 커스텀 프로바이더
 
-Choose based on your hardware:
-
-| Hardware | Recommended | Notes |
-|----------|------------|-------|
-| 8GB RAM | `llama3.2:1b` | Smallest, fastest |
-| 16GB RAM | `llama3.2:3b` or `mistral` | Good balance |
-| 32GB+ RAM | `llama3.2:8b` | Better quality |
-| GPU | Any model | Runs much faster |
-
-## Custom Provider
-
-Implement your own provider for private or custom models:
+비공개 또는 커스텀 모델을 위해 자체 프로바이더를 구현합니다:
 
 ```python
-from agentweave.llm.base import BaseLLMProvider
-from agentweave.core.types import LLMResponse, Message, StreamChunk, Usage
+from agentchord.llm.base import BaseLLMProvider
+from agentchord.core.types import LLMResponse, Message, StreamChunk, Usage
 from typing import Any, AsyncIterator
+
 
 class MyCustomProvider(BaseLLMProvider):
     def __init__(self, model: str, api_key: str):
@@ -342,10 +315,10 @@ class MyCustomProvider(BaseLLMProvider):
         max_tokens: int = 4096,
         **kwargs: Any,
     ) -> LLMResponse:
-        """Call your custom API."""
-        # Implementation
+        """커스텀 API 호출."""
+        # 구현
         return LLMResponse(
-            content="Your response",
+            content="응답 내용",
             model=self._model,
             usage=Usage(prompt_tokens=10, completion_tokens=5),
             finish_reason="stop"
@@ -359,7 +332,7 @@ class MyCustomProvider(BaseLLMProvider):
         max_tokens: int = 4096,
         **kwargs: Any,
     ) -> AsyncIterator[StreamChunk]:
-        """Stream responses from your API."""
+        """API에서 스트리밍 응답."""
         yield StreamChunk(
             content="First ",
             delta="First "
@@ -380,142 +353,98 @@ class MyCustomProvider(BaseLLMProvider):
         return 0.02
 ```
 
-### Register Custom Provider
+### 커스텀 프로바이더 등록
 
 ```python
-from agentweave.llm.registry import get_registry
-from agentweave import Agent
+from agentchord.llm.registry import get_registry
+from agentchord import Agent
 
-# Create factory
-def create_custom(model: str, **kwargs) -> BaseLLMProvider:
+# 팩토리 함수 생성
+def create_custom(model: str, **kwargs) -> MyCustomProvider:
     return MyCustomProvider(model=model, **kwargs)
 
-# Register
+# 등록
 registry = get_registry()
 registry.register("mycustom", create_custom, ["custom-"])
 
-# Use in Agent
+# Agent에서 사용
 agent = Agent(
     name="assistant",
-    role="Helper",
+    role="도우미",
     model="custom-mymodel",
     api_key="..."
 )
 ```
 
-## Streaming Support
+## 비용 정보
 
-All providers support streaming responses:
+주요 모델별 비용:
 
-```python
-agent = Agent(
-    name="assistant",
-    role="Helpful AI",
-    model="gpt-4o",  # Works with any provider
-)
-
-# Stream response token by token
-async for chunk in agent.stream("Write a short story"):
-    print(chunk.delta, end="", flush=True)
-```
-
-Provider-specific stream implementation:
-
-```python
-# When using custom provider
-async for chunk in provider.stream(messages):
-    print(f"Chunk: {chunk.delta}")
-    if chunk.finish_reason:
-        print(f"Usage: {chunk.usage}")
-```
-
-## Cost Tracking
-
-Costs are automatically calculated for supported providers:
-
-```python
-result = agent.run_sync("Hello")
-
-print(f"Input tokens: {result.usage.prompt_tokens}")
-print(f"Output tokens: {result.usage.completion_tokens}")
-print(f"Total tokens: {result.usage.total_tokens}")
-print(f"Estimated cost: ${result.cost:.4f}")
-```
-
-Costs per model:
-
-| Provider | Model | Input/1k | Output/1k |
-|----------|-------|----------|-----------|
+| 프로바이더 | 모델 | 입력/1k | 출력/1k |
+|-----------|------|---------|---------|
 | OpenAI | gpt-4o | $0.005 | $0.015 |
 | OpenAI | gpt-4o-mini | $0.00015 | $0.0006 |
 | Anthropic | claude-3-5-sonnet | $0.003 | $0.015 |
 | Anthropic | claude-3-5-haiku | $0.00080 | $0.004 |
 | Gemini | gemini-2.0-flash | $0.0001 | $0.0004 |
-| Ollama | Any | $0.00 | $0.00 |
+| Ollama | 모든 모델 | $0.00 | $0.00 |
 
-For custom providers:
+비용은 각 실행의 `result.cost`로 확인합니다:
 
 ```python
-class MyProvider(BaseLLMProvider):
-    @property
-    def cost_per_1k_input_tokens(self) -> float:
-        return 0.001  # $0.001 per 1k tokens
-
-    @property
-    def cost_per_1k_output_tokens(self) -> float:
-        return 0.002  # $0.002 per 1k tokens
-
-# Cost automatically calculated when agent runs
-result = agent.run_sync("Hello")
-estimated_cost = result.cost  # Calculated from token usage
+result = agent.run_sync("안녕")
+print(f"입력 토큰: {result.usage.prompt_tokens}")
+print(f"출력 토큰: {result.usage.completion_tokens}")
+print(f"총 토큰: {result.usage.total_tokens}")
+print(f"예상 비용: ${result.cost:.4f}")
 ```
 
-## Best Practices
-
-### 1. Choose Based on Requirements
+## 에러 처리
 
 ```python
-# Use gpt-4o for best results
+from agentchord.errors.exceptions import ModelNotFoundError, APIError
+
+try:
+    result = agent.run_sync("안녕")
+except ModelNotFoundError:
+    print("알 수 없는 모델 이름")
+except APIError as e:
+    print(f"API 에러: {e}")
+```
+
+## 베스트 프랙티스
+
+### 1. 요구사항에 맞게 선택
+
+```python
+# 최고 품질
 agent = Agent(model="gpt-4o")
 
-# Use gpt-4o-mini for speed and cost
+# 속도와 비용 균형
 agent = Agent(model="gpt-4o-mini")
 
-# Use claude-3-5-sonnet for reasoning
+# 복잡한 추론
 agent = Agent(model="claude-3-5-sonnet")
 
-# Use ollama/llama3.2 for privacy
+# 프라이버시 중요
 agent = Agent(model="ollama/llama3.2")
 ```
 
-### 2. Use Environment Variables
+### 2. 환경 변수 사용
 
 ```python
 import os
 
-# Define in .env file
+# .env 파일에 정의
 os.environ["OPENAI_API_KEY"] = "sk-..."
 os.environ["ANTHROPIC_API_KEY"] = "sk-ant-..."
 os.environ["GOOGLE_API_KEY"] = "AIza..."
 
-# Providers auto-detect from environment
-agent = Agent(name="ai", role="Helper", model="gpt-4o")
+# 프로바이더가 환경에서 자동 감지
+agent = Agent(name="ai", role="도우미", model="gpt-4o")
 ```
 
-### 3. Error Handling
-
-```python
-from agentweave.errors.exceptions import ModelNotFoundError, APIError
-
-try:
-    result = agent.run_sync("Hello")
-except ModelNotFoundError:
-    print("Unknown model name")
-except APIError as e:
-    print(f"API error: {e}")
-```
-
-### 4. Monitor Costs
+### 3. 비용 모니터링
 
 ```python
 total_cost = 0.0
@@ -523,13 +452,12 @@ total_cost = 0.0
 for query in queries:
     result = agent.run_sync(query)
     total_cost += result.cost
-    print(f"Query cost: ${result.cost:.4f}, Total: ${total_cost:.4f}")
+    print(f"쿼리 비용: ${result.cost:.4f}, 합계: ${total_cost:.4f}")
 ```
 
-### 5. Switch Providers in Production
+### 4. A/B 테스트 쉽게 전환
 
 ```python
-# Easy to A/B test different providers
 import os
 
 provider = os.environ.get("LLM_PROVIDER", "openai")
@@ -537,43 +465,43 @@ model = "gpt-4o" if provider == "openai" else "claude-3-5-sonnet"
 
 agent = Agent(
     name="assistant",
-    role="Helper",
+    role="도우미",
     model=model
 )
 ```
 
-## Complete Example
+## 완전한 예제
 
 ```python
-from agentweave import Agent
+from agentchord import Agent
 import os
 
 async def main():
-    # Configure providers
+    # 프로바이더 설정
     os.environ["OPENAI_API_KEY"] = "sk-..."
     os.environ["ANTHROPIC_API_KEY"] = "sk-ant-..."
 
-    # Create agents with different providers
+    # 다른 프로바이더로 에이전트 생성
     openai_agent = Agent(
         name="openai_bot",
-        role="OpenAI Assistant",
+        role="OpenAI 어시스턴트",
         model="gpt-4o"
     )
 
     anthropic_agent = Agent(
         name="anthropic_bot",
-        role="Anthropic Assistant",
+        role="Anthropic 어시스턴트",
         model="claude-3-5-sonnet-20241022"
     )
 
     local_agent = Agent(
         name="local_bot",
-        role="Local Assistant",
+        role="로컬 어시스턴트",
         model="ollama/llama3.2"
     )
 
-    # Compare responses
-    prompt = "Explain quantum entanglement in simple terms"
+    # 응답 비교
+    prompt = "양자 얽힘을 간단히 설명해줘"
 
     result1 = openai_agent.run_sync(prompt)
     print(f"OpenAI (${result1.cost:.4f}): {result1.output[:100]}...")
@@ -582,16 +510,16 @@ async def main():
     print(f"Anthropic (${result2.cost:.4f}): {result2.output[:100]}...")
 
     result3 = local_agent.run_sync(prompt)
-    print(f"Local (free): {result3.output[:100]}...")
+    print(f"Local (무료): {result3.output[:100]}...")
 
 if __name__ == "__main__":
     import asyncio
     asyncio.run(main())
 ```
 
-## See Also
+## 참고
 
-- [Tools Guide](tools.md) - Use tools with any provider
-- [Memory Guide](memory.md) - Preserve context across providers
-- [Resilience Guide](resilience.md) - Handle provider failures
-- [Agent Documentation](../api/core.md) - Agent API details
+- [도구 가이드](tools.md) - 모든 프로바이더에서 도구 사용
+- [메모리 가이드](memory.md) - 프로바이더 전반에서 컨텍스트 유지
+- [복원력 가이드](resilience.md) - 프로바이더 장애 처리
+- [Agent API](../api/core.md) - Agent API 상세 정보

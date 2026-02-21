@@ -1,381 +1,312 @@
-# LLM Providers API Reference
+# LLM 프로바이더 API 레퍼런스
 
-Complete API reference for LLM provider interfaces and implementations.
+AgentChord의 LLM 프로바이더에 대한 완전한 API 레퍼런스입니다. OpenAI, Anthropic, Gemini, Ollama 및 커스텀 프로바이더를 다룹니다.
+
+---
 
 ## BaseLLMProvider
 
-Abstract base class that all LLM providers must implement.
+모든 LLM 프로바이더가 구현해야 하는 추상 기본 클래스입니다.
 
 ```python
-from agentweave.llm.base import BaseLLMProvider
-from agentweave.core import Message
+from agentchord.llm.base import BaseLLMProvider
+from agentchord.core.types import LLMResponse, Message, StreamChunk
 
 class MyProvider(BaseLLMProvider):
     @property
     def model(self) -> str:
-        return "my-model"
+        return "my-model-v1"
 
     @property
     def provider_name(self) -> str:
         return "my-provider"
 
-    async def complete(self, messages, **kwargs):
-        # Implementation
-        pass
+    @property
+    def cost_per_1k_input_tokens(self) -> float:
+        return 0.001
 
-    async def stream(self, messages, **kwargs):
-        # Implementation
-        pass
+    @property
+    def cost_per_1k_output_tokens(self) -> float:
+        return 0.002
+
+    async def complete(self, messages, *, temperature=0.7, max_tokens=4096, **kwargs):
+        # 구현
+        ...
+
+    async def stream(self, messages, *, temperature=0.7, max_tokens=4096, **kwargs):
+        # 구현
+        ...
 ```
 
-**Properties:**
+**추상 프로퍼티:**
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `model` | `str` | Model identifier (abstract) |
-| `provider_name` | `str` | Provider name like 'openai', 'anthropic' (abstract) |
+| 프로퍼티 | 타입 | 설명 |
+|----------|------|------|
+| `model` | `str` | 모델 식별자 반환 |
+| `provider_name` | `str` | 프로바이더 이름 반환 (예: "openai", "anthropic") |
+| `cost_per_1k_input_tokens` | `float` | 입력 1,000 토큰당 USD 비용 |
+| `cost_per_1k_output_tokens` | `float` | 출력 1,000 토큰당 USD 비용 |
 
-**Methods:**
+**추상 메서드:**
 
-| Method | Signature | Returns | Description |
-|--------|-----------|---------|-------------|
-| `complete` | `async complete(messages: list[Message], *, temperature: float = 0.7, max_tokens: int = 4096, **kwargs) -> LLMResponse` | `LLMResponse` | Generate completion (abstract) |
-| `stream` | `async stream(messages: list[Message], *, temperature: float = 0.7, max_tokens: int = 4096, **kwargs) -> AsyncIterator[StreamChunk]` | `AsyncIterator[StreamChunk]` | Stream completion (abstract) |
+| 메서드 | 시그니처 | 반환값 | 설명 |
+|--------|---------|--------|------|
+| `complete` | `async complete(messages: list[Message], *, temperature: float = 0.7, max_tokens: int = 4096, **kwargs) -> LLMResponse` | `LLMResponse` | 메시지 목록에 대한 컴플리션 생성 |
+| `stream` | `async stream(messages: list[Message], *, temperature: float = 0.7, max_tokens: int = 4096, **kwargs) -> AsyncIterator[StreamChunk]` | `AsyncIterator[StreamChunk]` | 응답을 스트리밍으로 생성 |
 
-**Raises:**
+**구체적 메서드:**
 
-- `RateLimitError`: Rate limit exceeded
-- `AuthenticationError`: Authentication failed
-- `APIError`: API error occurred
-- `TimeoutError`: Request timed out
+| 메서드 | 시그니처 | 반환값 | 설명 |
+|--------|---------|--------|------|
+| `calculate_cost` | `calculate_cost(input_tokens: int, output_tokens: int) -> float` | `float` | 토큰 사용량에 대한 예상 비용 계산 (USD) |
+
+---
 
 ## OpenAIProvider
 
-OpenAI LLM provider supporting GPT models.
+OpenAI API를 사용하는 LLM 프로바이더입니다.
 
 ```python
-from agentweave.llm import OpenAIProvider
+from agentchord.llm.openai import OpenAIProvider
+from agentchord.core.types import Message
 
-# Using environment variable OPENAI_API_KEY
+# API 키는 OPENAI_API_KEY 환경 변수에서 자동 로드
 provider = OpenAIProvider(model="gpt-4o-mini")
+response = await provider.complete([Message.user("안녕하세요!")])
+print(response.content)
 
-# Using explicit API key
+# 커스텀 설정
 provider = OpenAIProvider(
     model="gpt-4o",
     api_key="sk-...",
-    timeout=60.0
+    base_url="https://my-proxy.example.com/v1",
+    timeout=30.0,
 )
-
-response = await provider.complete(messages)
 ```
 
-**Constructor Parameters:**
+**생성자 파라미터:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `model` | `str` | Required | Model name (e.g., "gpt-4o", "gpt-4o-mini") |
-| `api_key` | `str \| None` | None | OpenAI API key (uses OPENAI_API_KEY env var if None) |
-| `timeout` | `float` | 60.0 | Request timeout in seconds |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `model` | `str` | `"gpt-4o-mini"` | 모델 식별자 |
+| `api_key` | `str \| None` | `None` | OpenAI API 키. None이면 `OPENAI_API_KEY` 환경 변수 사용 |
+| `base_url` | `str \| None` | `None` | 커스텀 API 기본 URL (프록시 서버용) |
+| `timeout` | `float` | `60.0` | 요청 타임아웃 (초) |
 
-**Properties:**
+**지원 모델 및 가격 (2025년 기준):**
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `model` | `str` | OpenAI model identifier |
-| `provider_name` | `str` | "openai" |
+| 모델 | 입력 ($/1K 토큰) | 출력 ($/1K 토큰) |
+|------|----------------|----------------|
+| `gpt-4o` | $0.0025 | $0.0100 |
+| `gpt-4o-mini` | $0.00015 | $0.0006 |
+| `gpt-4-turbo` | $0.0100 | $0.0300 |
+| `gpt-4.1` | $0.0020 | $0.0080 |
+| `gpt-4.1-mini` | $0.0004 | $0.0016 |
+| `o1` | $0.0150 | $0.0600 |
+| `o1-mini` | $0.0030 | $0.0120 |
 
-**Methods:**
+**발생 가능한 예외:**
 
-Inherits from `BaseLLMProvider`:
-- `async complete(messages, *, temperature=0.7, max_tokens=4096, **kwargs) -> LLMResponse`
-- `async stream(messages, *, temperature=0.7, max_tokens=4096, **kwargs) -> AsyncIterator[StreamChunk]`
+| 예외 | 설명 |
+|------|------|
+| `MissingAPIKeyError` | API 키가 설정되지 않음 |
+| `AuthenticationError` | API 키가 유효하지 않음 |
+| `RateLimitError` | 속도 제한 초과 (재시도 가능) |
+| `TimeoutError` | 요청 타임아웃 (재시도 가능) |
+| `APIError` | 기타 API 오류 |
+
+---
 
 ## AnthropicProvider
 
-Anthropic LLM provider supporting Claude models.
+Anthropic Claude API를 사용하는 LLM 프로바이더입니다.
 
 ```python
-from agentweave.llm import AnthropicProvider
+from agentchord.llm.anthropic import AnthropicProvider
+from agentchord.core.types import Message
 
-# Using environment variable ANTHROPIC_API_KEY
-provider = AnthropicProvider(model="claude-3-5-sonnet-20241022")
+# API 키는 ANTHROPIC_API_KEY 환경 변수에서 자동 로드
+provider = AnthropicProvider(model="claude-3-5-sonnet-latest")
+response = await provider.complete([Message.user("안녕하세요!")])
+print(response.content)
 
-# Using explicit API key
+# 커스텀 설정
 provider = AnthropicProvider(
-    model="claude-3-opus-20250219",
+    model="claude-opus-4-6",
     api_key="sk-ant-...",
-    timeout=60.0
+    timeout=120.0,
 )
-
-response = await provider.complete(messages)
 ```
 
-**Constructor Parameters:**
+**생성자 파라미터:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `model` | `str` | Required | Model name (e.g., "claude-3-5-sonnet-20241022") |
-| `api_key` | `str \| None` | None | Anthropic API key (uses ANTHROPIC_API_KEY env var if None) |
-| `timeout` | `float` | 60.0 | Request timeout in seconds |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `model` | `str` | `"claude-sonnet-4-5-20250929"` | 모델 식별자 |
+| `api_key` | `str \| None` | `None` | Anthropic API 키. None이면 `ANTHROPIC_API_KEY` 환경 변수 사용 |
+| `base_url` | `str \| None` | `None` | 커스텀 API 기본 URL |
+| `timeout` | `float` | `60.0` | 요청 타임아웃 (초) |
 
-**Properties:**
+**지원 모델 및 가격 (2025년 기준):**
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `model` | `str` | Anthropic model identifier |
-| `provider_name` | `str` | "anthropic" |
+| 모델 | 입력 ($/1K 토큰) | 출력 ($/1K 토큰) |
+|------|----------------|----------------|
+| `claude-opus-4-6` | $0.0050 | $0.0250 |
+| `claude-sonnet-4-5-20250929` | $0.0030 | $0.0150 |
+| `claude-haiku-4-5-20251001` | $0.0010 | $0.0050 |
+| `claude-3-5-sonnet-20241022` | $0.0030 | $0.0150 |
+| `claude-3-5-haiku-20241022` | $0.0008 | $0.0040 |
+| `claude-3-opus-20240229` | $0.0150 | $0.0750 |
+| `claude-3-haiku-20240307` | $0.00025 | $0.00125 |
 
-**Methods:**
+> **주의:** Claude는 최대 temperature가 1.0입니다. 더 높은 값을 지정하면 자동으로 1.0으로 제한됩니다.
 
-Inherits from `BaseLLMProvider`:
-- `async complete(messages, *, temperature=0.7, max_tokens=4096, **kwargs) -> LLMResponse`
-- `async stream(messages, *, temperature=0.7, max_tokens=4096, **kwargs) -> AsyncIterator[StreamChunk]`
+---
 
 ## GeminiProvider
 
-Google Gemini LLM provider.
+Google Gemini API를 사용하는 LLM 프로바이더입니다. OpenAI 호환 엔드포인트를 httpx로 직접 통신합니다.
+
+- **엔드포인트:** `https://generativelanguage.googleapis.com/v1beta/openai/`
 
 ```python
-from agentweave.llm import GeminiProvider
+from agentchord.llm.gemini import GeminiProvider
+from agentchord.core.types import Message
 
-# Using environment variable GOOGLE_API_KEY
+# API 키는 GOOGLE_API_KEY 환경 변수에서 자동 로드
 provider = GeminiProvider(model="gemini-2.0-flash")
+response = await provider.complete([Message.user("안녕하세요!")])
+print(response.content)
 
-# Using explicit API key
-provider = GeminiProvider(
-    model="gemini-2.0-flash",
-    api_key="AIza...",
-    timeout=60.0
-)
-
-response = await provider.complete(messages)
+# 스트리밍
+async for chunk in provider.stream([Message.user("긴 글 써줘")]):
+    print(chunk.delta, end="")
 ```
 
-**Constructor Parameters:**
+**생성자 파라미터:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `model` | `str` | "gemini-2.0-flash" | Model name |
-| `api_key` | `str \| None` | None | Google API key (uses GOOGLE_API_KEY env var if None) |
-| `timeout` | `float` | 60.0 | Request timeout in seconds |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `model` | `str` | `"gemini-2.0-flash"` | 모델 식별자 |
+| `api_key` | `str \| None` | `None` | Google API 키. None이면 `GOOGLE_API_KEY` 환경 변수 사용 |
+| `timeout` | `float` | `60.0` | 요청 타임아웃 (초) |
 
-**Properties:**
+**지원 모델 및 가격 (2025년 기준):**
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `model` | `str` | Gemini model identifier |
-| `provider_name` | `str` | "gemini" |
+| 모델 | 입력 ($/1K 토큰) | 출력 ($/1K 토큰) |
+|------|----------------|----------------|
+| `gemini-2.5-pro` | $0.00125 | $0.00500 |
+| `gemini-2.0-flash` | $0.0001 | $0.0004 |
+| `gemini-2.0-flash-lite` | $0.0 | $0.0 |
+| `gemini-1.5-flash` | $0.000075 | $0.0003 |
+| `gemini-1.5-pro` | $0.00125 | $0.0050 |
 
-**Methods:**
+> **API 키 발급:** [Google AI Studio](https://aistudio.google.com/app/apikey)에서 무료로 발급합니다.
 
-Inherits from `BaseLLMProvider`:
-- `async complete(messages, *, temperature=0.7, max_tokens=4096, **kwargs) -> LLMResponse`
-- `async stream(messages, *, temperature=0.7, max_tokens=4096, **kwargs) -> AsyncIterator[StreamChunk]`
+---
 
 ## OllamaProvider
 
-Local Ollama provider for running models locally.
+로컬 또는 원격 Ollama 서버를 사용하는 LLM 프로바이더입니다. 완전 무료 (로컬 실행).
 
 ```python
-from agentweave.llm import OllamaProvider
+from agentchord.llm.ollama import OllamaProvider
+from agentchord.core.types import Message
 
-# Connect to local Ollama server
+# 로컬 기본 서버 (http://localhost:11434)
+provider = OllamaProvider(model="ollama/llama3.2")
+response = await provider.complete([Message.user("안녕하세요!")])
+print(response.content)
+
+# 원격 서버
 provider = OllamaProvider(
-    model="llama2",
-    base_url="http://localhost:11434",
-    timeout=120.0
+    model="ollama/mistral",
+    base_url="http://my-ollama-server:11434",
+    timeout=180.0,
 )
-
-response = await provider.complete(messages)
 ```
 
-**Constructor Parameters:**
+**생성자 파라미터:**
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `model` | `str` | Required | Model name available in Ollama |
-| `base_url` | `str` | "http://localhost:11434" | Ollama server URL |
-| `timeout` | `float` | 120.0 | Request timeout in seconds |
+| 파라미터 | 타입 | 기본값 | 설명 |
+|----------|------|--------|------|
+| `model` | `str` | 필수 | `"ollama/"` 접두사를 포함한 모델 이름 (예: `"ollama/llama3.2"`) |
+| `base_url` | `str` | `"http://localhost:11434"` | Ollama 서버 URL |
+| `timeout` | `float` | `120.0` | 요청 타임아웃 (초). 로컬 모델 특성상 기본값이 큼 |
 
-**Properties:**
+> **특이사항:**
+> - 비용은 항상 $0.0 (로컬 실행)
+> - API 호출 시 `"ollama/"` 접두사를 자동으로 제거
+> - Ollama 설치 및 실행이 필요: [https://ollama.com/](https://ollama.com/)
+> - 모델 풀 필요: `ollama pull llama3.2`
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `model` | `str` | Ollama model identifier |
-| `provider_name` | `str` | "ollama" |
-
-**Methods:**
-
-Inherits from `BaseLLMProvider`:
-- `async complete(messages, *, temperature=0.7, max_tokens=4096, **kwargs) -> LLMResponse`
-- `async stream(messages, *, temperature=0.7, max_tokens=4096, **kwargs) -> AsyncIterator[StreamChunk]`
+---
 
 ## ProviderRegistry
 
-Manages LLM provider registration and discovery.
+LLM 프로바이더 등록 및 모델명 기반 자동 감지를 관리하는 레지스트리입니다.
 
 ```python
-from agentweave.llm import ProviderRegistry, get_registry
+from agentchord.llm.registry import ProviderRegistry, get_registry
 
-# Get global registry
+# 전역 기본 레지스트리 (최초 호출 시 기본 프로바이더 자동 등록)
 registry = get_registry()
 
-# Register a provider
-def openai_factory(model, **kwargs):
-    from agentweave.llm import OpenAIProvider
-    return OpenAIProvider(model=model, **kwargs)
+# 등록된 프로바이더 목록
+print(registry.list_providers())  # ["openai", "anthropic", "ollama", "gemini"]
 
-registry.register("openai", openai_factory, prefixes=["gpt-"])
+# 모델명으로 프로바이더 감지
+name = registry.detect_provider("gpt-4o")         # "openai"
+name = registry.detect_provider("claude-3-5-sonnet") # "anthropic"
+name = registry.detect_provider("ollama/llama3.2") # "ollama"
+name = registry.detect_provider("gemini-2.0-flash") # "gemini"
 
-# Detect provider from model name
-provider = registry.detect_provider("gpt-4o-mini")
-print(provider)  # "openai"
-
-# Create provider instance
-instance = registry.create_provider("gpt-4o-mini")
-
-# List registered providers
-providers = registry.list_providers()
-print(providers)  # ["openai", "anthropic", "gemini", "ollama"]
+# 프로바이더 인스턴스 생성
+provider = registry.create_provider("gpt-4o-mini")
 ```
 
-**Methods:**
+**`get_registry()` 함수:**
 
-| Method | Signature | Returns | Description |
-|--------|-----------|---------|-------------|
-| `register` | `register(name: str, factory: Callable, prefixes: list[str]) -> None` | `None` | Register new provider |
-| `unregister` | `unregister(name: str) -> None` | `None` | Unregister provider |
-| `detect_provider` | `detect_provider(model: str) -> str \| None` | `str \| None` | Detect provider from model name |
-| `create_provider` | `create_provider(model: str, **kwargs) -> BaseLLMProvider` | `BaseLLMProvider` | Create provider instance |
-| `list_providers` | `list_providers() -> list[str]` | `list[str]` | List all registered provider names |
+전역 기본 레지스트리를 지연 초기화로 반환합니다. 최초 호출 시 OpenAI, Anthropic, Ollama, Gemini를 자동 등록합니다.
 
-**Example: Custom Provider**
+**메서드:**
 
-```python
-from agentweave.llm import BaseLLMProvider, get_registry
-from agentweave.core import LLMResponse, StreamChunk, Usage
+| 메서드 | 시그니처 | 반환값 | 설명 |
+|--------|---------|--------|------|
+| `register` | `register(name: str, factory: Callable, prefixes: list[str], default_cost_input: float = 0.0, default_cost_output: float = 0.0) -> None` | `None` | 프로바이더 등록 |
+| `unregister` | `unregister(name: str) -> bool` | `bool` | 프로바이더 등록 해제. 성공 시 True 반환 |
+| `detect_provider` | `detect_provider(model: str) -> str` | `str` | 모델명으로 프로바이더 이름 감지. 실패 시 `ModelNotFoundError` |
+| `create_provider` | `create_provider(model: str, **kwargs) -> BaseLLMProvider` | `BaseLLMProvider` | 모델명에 맞는 프로바이더 인스턴스 생성 |
+| `list_providers` | `list_providers() -> list[str]` | `list[str]` | 등록된 프로바이더 이름 목록 반환 |
+| `get_provider_info` | `get_provider_info(name: str) -> ProviderInfo \| None` | `ProviderInfo \| None` | 프로바이더 메타데이터 반환 |
 
-class CustomProvider(BaseLLMProvider):
-    def __init__(self, model: str, api_key: str = None, timeout: float = 60.0):
-        self._model = model
-        self._api_key = api_key
-        self._timeout = timeout
+**기본 등록 프리픽스:**
 
-    @property
-    def model(self) -> str:
-        return self._model
+| 프로바이더 | 감지 프리픽스 |
+|-----------|------------|
+| `openai` | `"gpt-"`, `"o1"`, `"text-"` |
+| `anthropic` | `"claude-"` |
+| `ollama` | `"ollama/"` |
+| `gemini` | `"gemini-"` |
 
-    @property
-    def provider_name(self) -> str:
-        return "custom"
-
-    async def complete(self, messages, *, temperature=0.7, max_tokens=4096, **kwargs):
-        # Implementation here
-        usage = Usage(prompt_tokens=100, completion_tokens=50)
-        return LLMResponse(
-            content="Response here",
-            model=self._model,
-            usage=usage,
-            finish_reason="stop"
-        )
-
-    async def stream(self, messages, *, temperature=0.7, max_tokens=4096, **kwargs):
-        # Streaming implementation
-        yield StreamChunk(content="Hello")
-        yield StreamChunk(content=" ", finish_reason="stop")
-
-# Register it
-registry = get_registry()
-def custom_factory(model, **kwargs):
-    return CustomProvider(model=model, **kwargs)
-
-registry.register("custom", custom_factory, prefixes=["custom-"])
-
-# Use it
-provider = registry.create_provider("custom-model")
-```
-
-## get_registry()
-
-Get the global provider registry singleton.
+**커스텀 프로바이더 등록 예제:**
 
 ```python
-from agentweave.llm import get_registry
+from agentchord.llm.registry import get_registry
+
+def my_factory(model: str, **kwargs):
+    return MyCustomProvider(model=model)
 
 registry = get_registry()
-```
-
-**Returns:**
-
-| Type | Description |
-|------|-------------|
-| `ProviderRegistry` | Global singleton registry instance |
-
-## Example: Multi-Provider Agent
-
-```python
-from agentweave.llm import OpenAIProvider, AnthropicProvider
-from agentweave.core import Agent
-
-# Create agents with different providers
-openai_provider = OpenAIProvider(model="gpt-4o-mini")
-anthropic_provider = AnthropicProvider(model="claude-3-5-sonnet-20241022")
-
-agent1 = Agent(
-    name="gpt_agent",
-    role="You help with coding",
-    llm_provider=openai_provider
+registry.register(
+    name="my-provider",
+    factory=my_factory,
+    prefixes=["mymodel-"],  # "mymodel-v1", "mymodel-v2" 등을 자동 감지
+    default_cost_input=0.001,
+    default_cost_output=0.002,
 )
 
-agent2 = Agent(
-    name="claude_agent",
-    role="You help with analysis",
-    llm_provider=anthropic_provider
-)
-
-# Each agent uses its own provider
-result1 = await agent1.run("Write Python code")
-result2 = await agent2.run("Analyze the data")
+# 이후 Agent에서 자동으로 사용
+from agentchord import Agent
+agent = Agent(name="agent", role="...", model="mymodel-v1")
 ```
-
-## Provider Selection
-
-AgentWeave automatically selects the appropriate provider based on the model name:
-
-| Model Pattern | Provider |
-|---------------|----------|
-| `gpt-*` | OpenAI |
-| `claude-*` | Anthropic |
-| `gemini-*` | Google Gemini |
-| `llama*`, `mistral*`, etc. | Ollama |
-
-You can override the provider by passing `llm_provider` to Agent constructor.
-
-## Error Handling
-
-All providers raise consistent exception types:
-
-```python
-from agentweave.errors import (
-    RateLimitError,
-    AuthenticationError,
-    APIError,
-    TimeoutError,
-    ModelNotFoundError
-)
-
-try:
-    response = await provider.complete(messages)
-except RateLimitError as e:
-    print(f"Rate limited, retry after {e.retry_after}s")
-except AuthenticationError as e:
-    print(f"Auth failed for {e.provider}")
-except TimeoutError as e:
-    print(f"Timed out after {e.timeout_seconds}s")
-except ModelNotFoundError as e:
-    print(f"Model {e.model} not found")
-except APIError as e:
-    print(f"API error: {e.status_code}")
-```
-
-See [Errors API](./errors.md) for complete error reference.

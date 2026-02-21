@@ -1,83 +1,81 @@
-# Resilience Guide
+# 복원력 가이드
 
-AgentWeave provides comprehensive resilience features to handle failures gracefully in production. This includes retry policies, circuit breakers, and timeout management.
+AgentChord는 프로덕션에서 장애를 우아하게 처리하는 복원력 기능을 제공합니다. 재시도 정책, 서킷 브레이커, 타임아웃 관리를 포함합니다.
 
-## Quick Start
+## 빠른 시작
 
-Enable resilience with automatic defaults:
+합리적인 기본값으로 복원력을 활성화합니다:
 
 ```python
-from agentweave import Agent
-from agentweave.resilience import create_default_resilience
+from agentchord import Agent
+from agentchord.resilience import create_default_resilience
 
-# Create resilience config with sensible defaults
+# 기본값이 적용된 복원력 설정 생성
 resilience = create_default_resilience()
 
 agent = Agent(
     name="robust_assistant",
-    role="Reliable helper",
+    role="안정적인 도우미",
     model="gpt-4o-mini",
     resilience=resilience
 )
 
-# Retries automatically on transient failures
-result = agent.run_sync("Hello")
+# 일시적 장애 시 자동으로 재시도
+result = agent.run_sync("안녕")
 print(result.output)
 ```
 
-## Overview
+## 실행 순서
 
-AgentWeave applies resilience in this order (from outside to inside):
+AgentChord는 다음 순서로 복원력을 적용합니다 (외부에서 내부 순):
 
-1. **Timeout** - Maximum time for entire operation
-2. **Circuit Breaker** - Prevents cascading failures
-3. **Retry** - Automatic retries with backoff
-4. **Function** - Your actual API call
+1. **Timeout** - 전체 작업의 최대 시간
+2. **Circuit Breaker** - 연쇄 장애 방지
+3. **Retry** - 자동 재시도와 백오프
+4. **Function** - 실제 API 호출
 
 ```
-User → [Timeout → Circuit Breaker → Retry] → LLM API
+사용자 → [Timeout → Circuit Breaker → Retry] → LLM API
 ```
 
-## Retry Policy
+## RetryPolicy
 
-Automatically retry transient failures with configurable backoff.
+일시적 장애 시 설정 가능한 백오프로 자동 재시도합니다.
 
-### Basic Retry
+### 기본 재시도
 
 ```python
-from agentweave.resilience import RetryPolicy, RetryStrategy
+from agentchord.resilience import RetryPolicy, RetryStrategy
 
-# Simple fixed retry: 3 attempts, 1 second delay between
+# 단순 고정 재시도: 3번 시도, 1초 지연
 policy = RetryPolicy(
     max_retries=3,
     strategy=RetryStrategy.FIXED,
     base_delay=1.0
 )
 
-# Execute with retry
+# 재시도와 함께 실행
 result = await policy.execute(some_async_func, arg1, arg2)
 ```
 
-### Retry Strategies
+### 재시도 전략
 
-Choose a strategy based on your use case:
+#### FIXED (고정) 지연
 
-#### FIXED Delay
-
-Same delay between retries:
+재시도 간격이 동일합니다:
 
 ```python
 policy = RetryPolicy(
     max_retries=3,
     strategy=RetryStrategy.FIXED,
-    base_delay=2.0  # 2 seconds between retries
+    base_delay=2.0  # 재시도 간 2초
 )
-# Attempts: 0s → 2s → 4s (fixed 2s delays)
+# 시도: 0s → 2s → 4s (2초 고정 지연)
 ```
 
-#### EXPONENTIAL Backoff
+#### EXPONENTIAL (지수) 백오프
 
-Exponentially increasing delay (recommended for API failures):
+API 장애에 권장되는 지수적으로 증가하는 지연:
 
 ```python
 policy = RetryPolicy(
@@ -86,16 +84,16 @@ policy = RetryPolicy(
     base_delay=1.0,
     max_delay=60.0
 )
-# Attempt 1: immediate
-# Attempt 2: 1s delay (1 * 2^0)
-# Attempt 3: 2s delay (1 * 2^1)
-# Attempt 4: 4s delay (1 * 2^2)
-# Attempt 5: 8s delay (1 * 2^3)
+# 1번째 시도: 즉시
+# 2번째 시도: 1초 지연 (1 * 2^0)
+# 3번째 시도: 2초 지연 (1 * 2^1)
+# 4번째 시도: 4초 지연 (1 * 2^2)
+# 5번째 시도: 8초 지연 (1 * 2^3)
 ```
 
-#### LINEAR Backoff
+#### LINEAR (선형) 백오프
 
-Linearly increasing delay:
+선형적으로 증가하는 지연:
 
 ```python
 policy = RetryPolicy(
@@ -103,33 +101,33 @@ policy = RetryPolicy(
     strategy=RetryStrategy.LINEAR,
     base_delay=1.0
 )
-# Attempt 1: immediate
-# Attempt 2: 1s delay (1 * 1)
-# Attempt 3: 2s delay (1 * 2)
-# Attempt 4: 3s delay (1 * 3)
+# 1번째 시도: 즉시
+# 2번째 시도: 1초 지연 (1 * 1)
+# 3번째 시도: 2초 지연 (1 * 2)
+# 4번째 시도: 3초 지연 (1 * 3)
 ```
 
-### Jitter
+### Jitter (지터)
 
-Add randomness to prevent thundering herd:
+천둥떼 현상(Thundering Herd)을 방지하기 위해 무작위성을 추가합니다:
 
 ```python
 policy = RetryPolicy(
     max_retries=3,
     strategy=RetryStrategy.EXPONENTIAL,
     base_delay=1.0,
-    jitter=True,  # Add random jitter
-    jitter_factor=0.1  # +/- 10% of delay
+    jitter=True,       # 무작위 지터 추가
+    jitter_factor=0.1  # 지연의 +/- 10%
 )
-# With jitter, delays vary slightly: 0.9s-1.1s, 1.8s-2.2s, etc.
+# 지터 적용 시 지연이 약간 변동: 0.9s-1.1s, 1.8s-2.2s 등
 ```
 
-### Retryable Errors
+### 재시도 가능한 에러
 
-Only retry specific exceptions:
+특정 예외만 재시도합니다:
 
 ```python
-from agentweave.errors.exceptions import RateLimitError, TimeoutError
+from agentchord.errors.exceptions import RateLimitError, TimeoutError
 
 policy = RetryPolicy(
     max_retries=3,
@@ -140,22 +138,22 @@ policy = RetryPolicy(
     )
 )
 
-# This will retry on RateLimitError
-# But not on ValueError or other exceptions
+# RateLimitError에는 재시도함
+# ValueError 등 다른 예외는 재시도하지 않음
 ```
 
-Default retryable errors:
+기본 재시도 가능 에러:
 - `RateLimitError`
 - `TimeoutError`
 - `APIError`
 - `ConnectionError`
 - `asyncio.TimeoutError`
 
-### With Agents
+### 에이전트에서 사용
 
 ```python
-from agentweave import Agent
-from agentweave.resilience import RetryPolicy, RetryStrategy
+from agentchord import Agent
+from agentchord.resilience import RetryPolicy, RetryStrategy, ResilienceConfig
 
 policy = RetryPolicy(
     max_retries=3,
@@ -167,7 +165,7 @@ policy = RetryPolicy(
 
 agent = Agent(
     name="resilient",
-    role="Reliable assistant",
+    role="안정적인 어시스턴트",
     model="gpt-4o-mini",
     resilience=ResilienceConfig(
         retry_enabled=True,
@@ -175,76 +173,76 @@ agent = Agent(
     )
 )
 
-# Automatically retries on transient failures
-result = agent.run_sync("Hello")
+# 일시적 장애 시 자동으로 재시도
+result = agent.run_sync("안녕")
 ```
 
-## Circuit Breaker
+## CircuitBreaker
 
-Prevent cascading failures when a service is down.
+서비스 중단 시 연쇄 장애를 방지합니다.
 
-### How It Works
+### 동작 방식
 
-Circuit breaker has three states:
+서킷 브레이커는 세 가지 상태를 가집니다:
 
 ```
-CLOSED (normal) → OPEN (stop calling) → HALF_OPEN (test) → CLOSED
-       ↓                    ↓                  ↓
-    working          too many failures     recoverable?
+CLOSED (정상) → OPEN (차단) → HALF_OPEN (테스트) → CLOSED
+       ↓                ↓                ↓
+    정상 동작      너무 많은 실패    회복 가능?
 ```
 
-### Basic Circuit Breaker
+### 기본 서킷 브레이커
 
 ```python
-from agentweave.resilience import CircuitBreaker
+from agentchord.resilience import CircuitBreaker
 
 breaker = CircuitBreaker(
-    failure_threshold=5,      # Open after 5 failures
-    success_threshold=2,      # Close after 2 successes
-    timeout=60.0              # Try again after 60 seconds
+    failure_threshold=5,   # 5번 실패 후 OPEN
+    success_threshold=2,   # 2번 성공 후 CLOSED
+    timeout=60.0           # 60초 후 재시도
 )
 
-# Attempt calls - if too many fail, circuit opens
+# 호출 시도 - 너무 많이 실패하면 서킷 OPEN
 try:
     result = await breaker.execute(llm_api_call)
 except CircuitBreakerOpenError:
-    # Service is down, use fallback
-    result = "Service temporarily unavailable"
+    # 서비스 중단, 폴백 사용
+    result = "서비스가 일시적으로 사용할 수 없습니다"
 ```
 
-### State Transitions
+### 상태 전환
 
 ```python
 breaker = CircuitBreaker(
-    failure_threshold=3,    # Open after 3 failures
-    success_threshold=2,    # Close after 2 successes
-    timeout=30.0            # Check recovery after 30s
+    failure_threshold=3,   # 3번 실패 후 OPEN
+    success_threshold=2,   # 2번 성공 후 CLOSED
+    timeout=30.0           # 30초 후 회복 확인
 )
 
-# CLOSED state: Normal operation
-await breaker.execute(api_call)  # Works fine
+# CLOSED 상태: 정상 동작
+await breaker.execute(api_call)  # 정상 작동
 
-# After 3 failures -> OPEN state
-await breaker.execute(api_call)  # Fails immediately with CircuitBreakerOpenError
+# 3번 실패 후 → OPEN 상태
+await breaker.execute(api_call)  # CircuitBreakerOpenError로 즉시 실패
 
-# Wait 30 seconds -> HALF_OPEN state
-# Try again - if 2 successes -> CLOSED (back to normal)
-# If 1 failure -> OPEN again (circuit opens again)
+# 30초 대기 → HALF_OPEN 상태
+# 재시도 - 2번 성공 시 → CLOSED (정상 복귀)
+# 1번 실패 시 → 다시 OPEN
 ```
 
-### Properties
+### 속성
 
 ```python
-print(breaker.state)              # "CLOSED", "OPEN", or "HALF_OPEN"
-print(breaker.failure_count)      # Number of failures since reset
-print(breaker.success_count)      # Number of successes in HALF_OPEN
+print(breaker.state)          # "CLOSED", "OPEN", "HALF_OPEN"
+print(breaker.failure_count)  # 리셋 이후 실패 횟수
+print(breaker.success_count)  # HALF_OPEN에서 성공 횟수
 ```
 
-### With Agents
+### 에이전트에서 사용
 
 ```python
-from agentweave import Agent
-from agentweave.resilience import ResilienceConfig, CircuitBreaker
+from agentchord import Agent
+from agentchord.resilience import ResilienceConfig, CircuitBreaker
 
 breaker = CircuitBreaker(
     failure_threshold=5,
@@ -254,7 +252,7 @@ breaker = CircuitBreaker(
 
 agent = Agent(
     name="circuit_breaker_agent",
-    role="Assistant",
+    role="어시스턴트",
     model="gpt-4o-mini",
     resilience=ResilienceConfig(
         circuit_breaker_enabled=True,
@@ -263,43 +261,43 @@ agent = Agent(
 )
 ```
 
-## Timeout Management
+## TimeoutManager
 
-Prevent requests from hanging indefinitely.
+요청이 무한히 대기하는 것을 방지합니다.
 
-### Basic Timeout
+### 기본 타임아웃
 
 ```python
-from agentweave.resilience import TimeoutManager
+from agentchord.resilience import TimeoutManager
 
-manager = TimeoutManager(default_timeout=30.0)  # 30 seconds
+manager = TimeoutManager(default_timeout=30.0)  # 30초
 
 result = await manager.execute(llm_api_call)
 ```
 
-### Model-Specific Timeouts
+### 모델별 타임아웃
 
-Different timeouts for different models:
+다른 모델에 다른 타임아웃을 설정합니다:
 
 ```python
 manager = TimeoutManager(
     default_timeout=60.0,
     per_model_timeouts={
-        "gpt-4o": 120.0,           # GPT-4O gets 2 minutes
-        "gpt-4o-mini": 30.0,       # GPT-4O mini gets 30 seconds
-        "ollama/llama3.2": 300.0,  # Local model gets 5 minutes
+        "gpt-4o": 120.0,           # GPT-4O는 2분
+        "gpt-4o-mini": 30.0,       # GPT-4O mini는 30초
+        "ollama/llama3.2": 300.0,  # 로컬 모델은 5분
     }
 )
 
-# Timeout automatically selected based on model
+# 모델 기반으로 타임아웃 자동 선택
 result = await manager.execute(llm_api_call, model="gpt-4o")
 ```
 
-### With Agents
+### 에이전트에서 사용
 
 ```python
-from agentweave import Agent
-from agentweave.resilience import ResilienceConfig, TimeoutManager
+from agentchord import Agent
+from agentchord.resilience import ResilienceConfig, TimeoutManager
 
 timeout_manager = TimeoutManager(
     default_timeout=60.0,
@@ -311,7 +309,7 @@ timeout_manager = TimeoutManager(
 
 agent = Agent(
     name="fast_agent",
-    role="Quick responder",
+    role="빠른 응답자",
     model="gpt-4o-mini",
     resilience=ResilienceConfig(
         timeout_enabled=True,
@@ -322,12 +320,12 @@ agent = Agent(
 
 ## ResilienceConfig
 
-Combine all resilience features into one config:
+모든 복원력 기능을 하나의 설정으로 결합합니다.
 
-### All Three Layers
+### 세 가지 레이어 모두 사용
 
 ```python
-from agentweave.resilience import (
+from agentchord.resilience import (
     ResilienceConfig,
     RetryPolicy,
     RetryStrategy,
@@ -336,7 +334,7 @@ from agentweave.resilience import (
 )
 
 config = ResilienceConfig(
-    # Retry configuration
+    # 재시도 설정
     retry_enabled=True,
     retry_policy=RetryPolicy(
         max_retries=3,
@@ -345,7 +343,7 @@ config = ResilienceConfig(
         max_delay=30.0
     ),
 
-    # Circuit breaker configuration
+    # 서킷 브레이커 설정
     circuit_breaker_enabled=True,
     circuit_breaker=CircuitBreaker(
         failure_threshold=5,
@@ -353,7 +351,7 @@ config = ResilienceConfig(
         timeout=60.0
     ),
 
-    # Timeout configuration
+    # 타임아웃 설정
     timeout_enabled=True,
     timeout_manager=TimeoutManager(
         default_timeout=60.0,
@@ -366,174 +364,137 @@ config = ResilienceConfig(
 
 agent = Agent(
     name="super_resilient",
-    role="Bulletproof assistant",
+    role="매우 안정적인 어시스턴트",
     model="gpt-4o-mini",
     resilience=config
 )
 ```
 
-### Execute with ResilienceConfig
+### 함수 직접 실행
 
 ```python
-# Method 1: Use agent (automatic)
-result = agent.run_sync("Hello")
+# 방법 1: 에이전트 사용 (자동)
+result = agent.run_sync("안녕")
 
-# Method 2: Use config directly
+# 방법 2: 설정 직접 사용
 result = await config.execute(llm_api_call, model="gpt-4o")
 ```
 
-### Wrap Functions
+### 함수 래핑
 
 ```python
-# Wrap a function with resilience
+# 함수를 복원력으로 래핑
 wrapped_func = config.wrap(my_async_function, model="gpt-4o")
 
-# Use wrapped function
+# 래핑된 함수 사용
 result = await wrapped_func(arg1, arg2)
 ```
 
-### Default Configuration
+### 기본 설정
 
-Pre-configured with sensible defaults:
+합리적인 기본값으로 미리 구성됩니다:
 
 ```python
-from agentweave.resilience import create_default_resilience
+from agentchord.resilience import create_default_resilience
 
 config = create_default_resilience()
-# Provides:
-# - 3 retries with exponential backoff
-# - 60 second timeout
-# - No circuit breaker (disabled by default)
+# 제공하는 내용:
+# - 3번 재시도, 지수 백오프
+# - 60초 타임아웃
+# - 서킷 브레이커 없음 (기본 비활성화)
 
 agent = Agent(
     name="assistant",
-    role="Helper",
+    role="도우미",
     model="gpt-4o-mini",
     resilience=config
 )
 ```
 
-## Execution Order
+## 에러 처리
 
-Understanding the execution stack:
-
-```python
-# With this configuration:
-config = ResilienceConfig(
-    retry_enabled=True,
-    circuit_breaker_enabled=True,
-    timeout_enabled=True
-)
-
-# Execution flows like this:
-async def execute(func):
-    try:
-        # Layer 3: Timeout (outermost)
-        async with asyncio.timeout(60):
-            # Layer 2: Circuit breaker
-            if breaker.is_open():
-                raise CircuitBreakerOpenError()
-
-            # Layer 1: Retry (innermost)
-            for attempt in range(max_retries + 1):
-                try:
-                    # Layer 0: Actual function
-                    return await func()
-                except Exception as e:
-                    if not should_retry(e):
-                        raise
-                    await asyncio.sleep(delay)
-    except asyncio.TimeoutError:
-        # Caught by timeout layer
-        pass
-```
-
-## Error Handling
-
-Different errors behave differently:
+에러 종류에 따라 다르게 처리됩니다:
 
 ```python
-from agentweave.errors.exceptions import (
-    RateLimitError,      # Retried
-    TimeoutError,        # Retried
-    APIError,            # Retried
-    AuthenticationError, # NOT retried
-    ModelNotFoundError   # NOT retried
+from agentchord.errors.exceptions import (
+    RateLimitError,      # 재시도됨
+    TimeoutError,        # 재시도됨
+    APIError,            # 재시도됨
+    AuthenticationError, # 재시도 안 됨
+    ModelNotFoundError   # 재시도 안 됨
 )
 
-# This will retry:
+# 이것은 재시도됨:
 try:
-    await agent.run_sync("Hello")
+    await agent.run_sync("안녕")
 except RateLimitError:
-    pass  # Retried automatically
+    pass  # 자동으로 재시도됨
 
-# This won't retry (fails immediately):
+# 이것은 재시도 안 됨 (즉시 실패):
 try:
-    await agent.run_sync("Hello")
+    await agent.run_sync("안녕")
 except AuthenticationError:
-    pass  # Failed immediately, not retried
+    pass  # 재시도 없이 즉시 실패
 ```
 
-## Monitoring and Debugging
+## 모니터링 및 디버깅
 
-### Check Retry Behavior
+### 재시도 동작 확인
 
 ```python
 policy = RetryPolicy(max_retries=3)
 
-# Check configuration
-print(f"Max retries: {policy.max_retries}")
-print(f"Strategy: {policy.strategy}")
-print(f"Base delay: {policy.base_delay}s")
+print(f"최대 재시도: {policy.max_retries}")
+print(f"전략: {policy.strategy}")
+print(f"기본 지연: {policy.base_delay}s")
 
-# Check delay calculation
+# 지연 계산 확인
 for attempt in range(3):
     delay = policy.get_delay(attempt)
-    print(f"Attempt {attempt}: {delay:.1f}s delay")
+    print(f"시도 {attempt}: {delay:.1f}s 지연")
 ```
 
-### Check Circuit Breaker Status
+### 서킷 브레이커 상태 확인
 
 ```python
 breaker = CircuitBreaker(failure_threshold=3)
 
-# Monitor state
-print(f"State: {breaker.state}")
-print(f"Failures: {breaker.failure_count}")
-print(f"Successes: {breaker.success_count}")
+# 상태 모니터링
+print(f"상태: {breaker.state}")
+print(f"실패 횟수: {breaker.failure_count}")
+print(f"성공 횟수: {breaker.success_count}")
 
-# Check if calls would be blocked
 if breaker.state == "OPEN":
-    print("Circuit is open - calls blocked")
+    print("서킷이 열려 있음 - 호출이 차단됨")
 ```
 
-### Logging
+### 로깅
 
-AgentWeave logs resilience events:
+AgentChord가 복원력 이벤트를 로그에 기록합니다:
 
 ```python
 import logging
 
-# Enable logging to see retry/circuit breaker events
+# 재시도/서킷 브레이커 이벤트 확인을 위해 로깅 활성화
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("agentweave.resilience")
+logger = logging.getLogger("agentchord.resilience")
 
-# Now you'll see retry attempts, circuit breaker state changes, etc.
-result = agent.run_sync("Hello")
+# 재시도 시도, 서킷 브레이커 상태 변경 등이 보임
+result = agent.run_sync("안녕")
 ```
 
-## Best Practices
+## 베스트 프랙티스
 
-### 1. Use Default Config for Most Cases
+### 1. 대부분의 경우 기본 설정 사용
 
 ```python
-from agentweave.resilience import create_default_resilience
+from agentchord.resilience import create_default_resilience
 
-# Good: sensible defaults
+# 좋음: 합리적인 기본값
 config = create_default_resilience()
 agent = Agent(..., resilience=config)
 
-# Don't: over-engineering
+# 피해야 할 과도한 설정
 config = ResilienceConfig(
     retry_enabled=True,
     retry_policy=RetryPolicy(max_retries=10, strategy=RetryStrategy.FIXED),
@@ -544,30 +505,30 @@ config = ResilienceConfig(
 )
 ```
 
-### 2. Match Timeouts to Model Speed
+### 2. 모델 속도에 맞는 타임아웃
 
 ```python
 manager = TimeoutManager(
     default_timeout=60.0,
     per_model_timeouts={
-        "gpt-4o": 120.0,           # Slower
-        "gpt-4o-mini": 30.0,       # Faster
-        "ollama/llama3.2": 300.0,  # Local, potentially slow
+        "gpt-4o": 120.0,           # 느린 모델
+        "gpt-4o-mini": 30.0,       # 빠른 모델
+        "ollama/llama3.2": 300.0,  # 로컬, 느릴 수 있음
     }
 )
 ```
 
-### 3. Exponential Backoff for APIs
+### 3. API에는 지수 백오프 사용
 
 ```python
-# Good: exponential backoff for API rate limits
+# 좋음: API 속도 제한에 지수 백오프
 policy = RetryPolicy(
     max_retries=4,
     strategy=RetryStrategy.EXPONENTIAL,
     base_delay=1.0
 )
 
-# Bad: fixed or linear for APIs (hammers when rate-limited)
+# 나쁨: 고정 또는 선형은 속도 제한 시 API를 계속 두드림
 policy = RetryPolicy(
     max_retries=4,
     strategy=RetryStrategy.FIXED,
@@ -575,10 +536,10 @@ policy = RetryPolicy(
 )
 ```
 
-### 4. Circuit Breaker for External Services
+### 4. 외부 서비스에는 서킷 브레이커 사용
 
 ```python
-# Good: circuit breaker prevents cascading failures
+# 좋음: 서킷 브레이커로 연쇄 장애 방지
 config = ResilienceConfig(
     circuit_breaker_enabled=True,
     circuit_breaker=CircuitBreaker(
@@ -586,19 +547,13 @@ config = ResilienceConfig(
         timeout=60.0
     )
 )
-
-# Bad: without circuit breaker, continuously hammers failing service
-config = ResilienceConfig(
-    circuit_breaker_enabled=False
-)
 ```
 
-### 5. Log Failures for Debugging
+### 5. 디버깅을 위한 로깅
 
 ```python
 import logging
 
-# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -607,17 +562,17 @@ logging.basicConfig(
 agent = Agent(..., resilience=create_default_resilience())
 
 try:
-    result = agent.run_sync("Hello")
+    result = agent.run_sync("안녕")
 except Exception as e:
-    # Logs will show retry attempts, timeouts, etc.
-    logging.error(f"Final failure: {e}")
+    # 로그에 재시도 시도, 타임아웃 등이 기록됨
+    logging.error(f"최종 실패: {e}")
 ```
 
-## Complete Example
+## 완전한 예제
 
 ```python
-from agentweave import Agent
-from agentweave.resilience import (
+from agentchord import Agent
+from agentchord.resilience import (
     ResilienceConfig,
     RetryPolicy,
     RetryStrategy,
@@ -627,9 +582,9 @@ from agentweave.resilience import (
 import asyncio
 
 async def main():
-    # Configure resilience
+    # 복원력 설정
     config = ResilienceConfig(
-        # Retry on transient errors
+        # 일시적 에러 재시도
         retry_enabled=True,
         retry_policy=RetryPolicy(
             max_retries=3,
@@ -639,7 +594,7 @@ async def main():
             jitter=True
         ),
 
-        # Prevent cascading failures
+        # 연쇄 장애 방지
         circuit_breaker_enabled=True,
         circuit_breaker=CircuitBreaker(
             failure_threshold=5,
@@ -647,7 +602,7 @@ async def main():
             timeout=60.0
         ),
 
-        # Prevent hanging requests
+        # 대기 중인 요청 방지
         timeout_enabled=True,
         timeout_manager=TimeoutManager(
             default_timeout=60.0,
@@ -658,28 +613,28 @@ async def main():
         )
     )
 
-    # Create resilient agent
+    # 복원력 에이전트 생성
     agent = Agent(
         name="resilient_assistant",
-        role="Reliable helper",
+        role="안정적인 도우미",
         model="gpt-4o-mini",
         resilience=config
     )
 
-    # This call will retry on failure, timeout after 30s,
-    # and use circuit breaker to prevent cascading failures
+    # 이 호출은 장애 시 재시도하고, 30초 후 타임아웃하며,
+    # 연쇄 장애 방지를 위한 서킷 브레이커 사용
     try:
-        result = agent.run_sync("Explain resilience in 2 sentences")
-        print(f"Success: {result.output}")
+        result = agent.run_sync("복원력을 2문장으로 설명해줘")
+        print(f"성공: {result.output}")
     except Exception as e:
-        print(f"Failed after retries: {e}")
+        print(f"재시도 후 최종 실패: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-## See Also
+## 참고
 
-- [Providers Guide](providers.md) - Use resilience with different providers
-- [Tools Guide](tools.md) - Apply resilience to tool calls
-- [Agent Documentation](../api/core.md) - Agent API details
+- [프로바이더 가이드](providers.md) - 다양한 프로바이더와 함께 복원력 사용
+- [도구 가이드](tools.md) - 도구 호출에 복원력 적용
+- [Agent API](../api/core.md) - Agent API 상세 정보

@@ -1,380 +1,172 @@
-# AgentWeave
+# AgentChord
 
-> **Protocol-First Multi-Agent Framework for Python**
+> **Python asyncio 기반 멀티에이전트 프레임워크**
 >
-> Build production-grade AI agent systems with native MCP/A2A protocol support, full-stack RAG, and built-in resilience -- not just wrappers, but framework-level engineering.
+> MCP/A2A 프로토콜 네이티브 지원, 풀스택 RAG, 멀티에이전트 오케스트레이션, 내장 복원력 -- 래퍼가 아닌 프레임워크 수준의 엔지니어링.
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Tests](https://img.shields.io/badge/tests-701%20passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-2%2C500%2B%20passed-brightgreen.svg)]()
 [![Coverage](https://img.shields.io/badge/coverage-82%25-brightgreen.svg)]()
 [![Typed](https://img.shields.io/badge/typing-mypy%20strict-blue.svg)]()
 [![AsyncIO](https://img.shields.io/badge/async-first-purple.svg)]()
 
-AgentWeave is an async-first Python framework for building multi-agent AI systems with native protocol support for [MCP](https://modelcontextprotocol.io/) (Model Context Protocol) and [A2A](https://google.github.io/A2A/) (Agent-to-Agent). Every layer -- from LLM abstraction to RAG evaluation -- is designed, implemented, and tested from scratch.
+AgentChord는 [MCP](https://modelcontextprotocol.io/) (Model Context Protocol)와 [A2A](https://google.github.io/A2A/) (Agent-to-Agent)를 네이티브로 지원하는 async-first Python 멀티에이전트 프레임워크입니다. LLM 추상화부터 RAG 평가까지 모든 계층이 처음부터 설계, 구현, 테스트되었습니다.
 
 ---
 
-## Why AgentWeave?
+## 왜 AgentChord인가?
 
-Most agent frameworks wrap existing APIs with convenience layers. AgentWeave takes a different approach: **every component is built from protocol-level abstractions upward**, giving you full control and deep understanding of each layer.
+대부분의 에이전트 프레임워크는 기존 API 위에 편의 계층을 씌웁니다. AgentChord는 다른 접근 방식을 취합니다: **프로토콜 수준의 추상화에서부터 위로 구축하여** 각 계층에 대한 완전한 제어와 깊은 이해를 제공합니다.
 
-| | AgentWeave | LangChain / LangGraph | CrewAI | AutoGen |
+| | AgentChord | LangChain / LangGraph | CrewAI | AutoGen |
 |---|---|---|---|---|
-| **Architecture** | Protocol-first (MCP + A2A native) | Chain / Graph abstractions | Role-based crews | Conversation patterns |
-| **LLM Providers** | 4 built-in (OpenAI, Anthropic, Gemini, Ollama) with `BaseLLMProvider` ABC | 80+ via integrations | LiteLLM wrapper | OpenAI-centric |
-| **RAG** | Full-stack built-in (BM25 + Vector + RRF + RAGAS eval) | External (LangSmith) | Plugin-based | None |
-| **Workflow Engine** | Flow DSL with Sequential / Parallel / Composite executors | Graph-based (nodes + edges) | Task delegation | Multi-turn conversation |
-| **Cost Tracking** | Built-in per-agent / per-workflow with budget limits | Callback-based | Built-in telemetry | None |
-| **Resilience** | Circuit Breaker + Retry + Timeout (Pydantic config) | Via LangSmith | None | None |
-| **Observability** | OpenTelemetry native + TraceCollector | LangSmith (proprietary SaaS) | Built-in | None |
-| **Type Safety** | Pydantic v2 + mypy strict + `py.typed` (PEP 561) | Partial | Partial | Partial |
-| **Structured Output** | Pydantic schema -> JSON Schema -> LLM -> validation | Via output parsers | None | None |
-| **Memory** | 3 types + 3 persistent backends (JSON, SQLite, custom) | Built-in | Short/Long-term | Chat history |
-
-**The core philosophy**: Understanding how to *build* a framework, not just how to *use* one.
+| **아키텍처** | 프로토콜 중심 (MCP + A2A 네이티브) | Chain / Graph 추상화 | 역할 기반 Crew | 대화 패턴 |
+| **LLM 프로바이더** | 4개 내장 + `BaseLLMProvider` ABC | 80+ (통합 패키지) | LiteLLM 래퍼 | OpenAI 중심 |
+| **RAG** | 풀스택 내장 (BM25 + Vector + RRF + RAGAS 평가) | 외부 (LangSmith) | 플러그인 | 없음 |
+| **워크플로우** | Flow DSL (순차 / 병렬 / 복합) | Graph (노드 + 엣지) | Task 위임 | 멀티턴 대화 |
+| **비용 추적** | 에이전트/워크플로우별 내장 (예산 한도) | 콜백 기반 | 내장 텔레메트리 | 없음 |
+| **복원력** | CircuitBreaker + Retry + Timeout (Pydantic 설정) | LangSmith 경유 | 없음 | 없음 |
+| **관측성** | OpenTelemetry 네이티브 + TraceCollector | LangSmith (SaaS) | 내장 | 없음 |
+| **타입 안전성** | Pydantic v2 + mypy strict + `py.typed` (PEP 561) | 부분적 | 부분적 | 부분적 |
 
 ---
 
-## Architecture
+## 빠른 시작
 
-### Core Architecture
-
-```mermaid
-graph TB
-    subgraph Agent Layer
-        Agent[Agent]
-        AgentConfig[AgentConfig<br/><i>Pydantic</i>]
-    end
-
-    subgraph LLM Providers
-        Base[BaseLLMProvider<br/><i>ABC</i>]
-        OpenAI[OpenAIProvider]
-        Anthropic[AnthropicProvider]
-        Gemini[GeminiProvider]
-        Ollama[OllamaProvider]
-        Registry[ProviderRegistry]
-    end
-
-    subgraph Tool System
-        ToolDec["@tool decorator"]
-        ToolBase[Tool]
-        ToolExec[ToolExecutor]
-        MCP[MCPClient<br/><i>MCP Protocol</i>]
-        MCPAdapter[MCPAdapter<br/><i>MCPTool -> Tool</i>]
-    end
-
-    subgraph Memory
-        BaseMem[BaseMemory<br/><i>ABC</i>]
-        ConvMem[ConversationMemory]
-        SemMem[SemanticMemory]
-        WorkMem[WorkingMemory]
-        MemStore[MemoryStore<br/><i>JSON / SQLite</i>]
-    end
-
-    subgraph Workflow Engine
-        Workflow[Workflow]
-        FlowDSL[Flow DSL Parser<br/><i>'A -> &#91;B, C&#93; -> D'</i>]
-        SeqExec[SequentialExecutor]
-        ParExec[ParallelExecutor]
-        CompExec[CompositeExecutor]
-    end
-
-    subgraph Resilience
-        ResConfig[ResilienceConfig]
-        Retry[RetryPolicy]
-        CB[CircuitBreaker]
-        TM[TimeoutManager]
-    end
-
-    subgraph Observability
-        CostTracker[CostTracker<br/><i>Budget + Alerts</i>]
-        Tracer[AgentWeaveTracer<br/><i>OpenTelemetry</i>]
-        Collector[TraceCollector<br/><i>JSON/JSONL export</i>]
-        Callbacks[CallbackManager]
-    end
-
-    subgraph Protocols
-        A2AClient[A2AClient]
-        A2AServer[A2AServer]
-    end
-
-    Agent --> AgentConfig
-    Agent --> Base
-    Agent --> ToolExec
-    Agent --> BaseMem
-    Agent --> MCP
-    Agent --> ResConfig
-    Agent --> CostTracker
-    Agent --> Callbacks
-
-    Base --> OpenAI
-    Base --> Anthropic
-    Base --> Gemini
-    Base --> Ollama
-    Registry --> Base
-
-    ToolDec --> ToolBase
-    ToolBase --> ToolExec
-    MCP --> MCPAdapter --> ToolExec
-
-    BaseMem --> ConvMem
-    BaseMem --> SemMem
-    BaseMem --> WorkMem
-    ConvMem --> MemStore
-
-    Workflow --> FlowDSL
-    FlowDSL --> SeqExec
-    FlowDSL --> ParExec
-    FlowDSL --> CompExec
-    Workflow --> Agent
-
-    ResConfig --> Retry
-    ResConfig --> CB
-    ResConfig --> TM
-
-    Tracer --> Collector
-
-    Agent --> A2AServer
-    A2AClient --> Agent
-
-    style Agent fill:#4A90D9,color:#fff
-    style Workflow fill:#4A90D9,color:#fff
-    style Base fill:#7B68EE,color:#fff
-    style BaseMem fill:#2ECC71,color:#fff
-    style ResConfig fill:#E74C3C,color:#fff
-    style CostTracker fill:#F39C12,color:#fff
-    style Tracer fill:#F39C12,color:#fff
-    style MCP fill:#9B59B6,color:#fff
-```
-
-### RAG Pipeline Architecture
-
-```mermaid
-graph LR
-    subgraph "Stage 1: Ingest"
-        Loader["DocumentLoader<br/><i>Text / PDF / Web / Dir</i>"]
-        Chunker["Chunker<br/><i>Recursive / Semantic / ParentChild</i>"]
-        Embed1["EmbeddingProvider<br/><i>OpenAI / Ollama / SentenceTransformer</i>"]
-        VS["VectorStore<br/><i>InMemory / ChromaDB / FAISS</i>"]
-        BM25["BM25Search<br/><i>Okapi BM25 (pure Python)</i>"]
-    end
-
-    subgraph "Stage 2: Retrieve"
-        Query["Query"]
-        Embed2["Embed Query"]
-        VecSearch["Vector Similarity"]
-        KWSearch["BM25 Keyword"]
-        RRF["HybridSearch<br/><i>Reciprocal Rank Fusion (k=60)</i>"]
-        Rerank["Reranker<br/><i>CrossEncoder / LLM</i>"]
-    end
-
-    subgraph "Stage 3: Generate"
-        Context["Context Assembly"]
-        LLM["BaseLLMProvider"]
-        Answer["RAGResponse"]
-        Eval["RAGEvaluator<br/><i>RAGAS: Faithfulness +<br/>Answer Relevancy +<br/>Context Relevancy</i>"]
-    end
-
-    Loader --> Chunker --> Embed1 --> VS
-    Chunker --> BM25
-
-    Query --> Embed2 --> VecSearch
-    Query --> KWSearch
-    VS --> VecSearch
-    BM25 --> KWSearch
-    VecSearch --> RRF
-    KWSearch --> RRF
-    RRF --> Rerank
-
-    Rerank --> Context --> LLM --> Answer
-    Answer --> Eval
-
-    style RRF fill:#E74C3C,color:#fff
-    style Eval fill:#F39C12,color:#fff
-    style LLM fill:#4A90D9,color:#fff
-    style VS fill:#2ECC71,color:#fff
-```
-
----
-
-## Features
-
-- **Multi-Provider LLM Support** -- OpenAI, Anthropic, Google Gemini, Ollama (local), with a unified `BaseLLMProvider` interface
-- **Multi-Agent Orchestration** -- AgentTeam with 4 strategies (coordinator, round_robin, debate, map_reduce), delegation-as-tools pattern, MessageBus for agent communication, SharedContext for thread-safe state
-- **Workflow Orchestration** -- Sequential, parallel, and mixed execution via intuitive Flow DSL (`"A -> [B, C] -> D"`)
-- **Protocol Native** -- Built-in MCP client/adapter and A2A client/server, not bolted-on wrappers
-- **Tool System** -- Pythonic `@tool` decorator with automatic JSON Schema generation from type hints
-- **Memory** -- Conversation, semantic, and working memory with persistent backends (JSON, SQLite)
-- **Resilience** -- Retry policies, circuit breakers, and timeout management via composable `ResilienceConfig`
-- **Cost Tracking** -- Per-agent and per-workflow token usage, cost monitoring, and budget alerts
-- **RAG Pipeline** -- Full-stack: document loading, chunking (3 strategies), embedding, hybrid search (BM25 + Vector + RRF), reranking, and RAGAS evaluation
-- **Streaming** -- Real-time token streaming with tool calling support (hybrid stream + complete)
-- **Structured Output** -- Pydantic model to JSON Schema, OpenAI `response_format`, and automatic validation
-- **Observability** -- OpenTelemetry native tracing (agent/workflow/LLM/tool spans) + TraceCollector for JSON export
-- **Lifecycle Management** -- Async context managers for agents and workflows (`async with Agent(...) as agent:`)
-
----
-
-## Quick Start
-
-### Installation
+### 설치
 
 ```bash
-pip install agentweave
+pip install agentchord
 
-# With specific providers
-pip install agentweave[openai]
-pip install agentweave[anthropic]
-pip install agentweave[all]  # Everything
+# 프로바이더별 설치
+pip install agentchord[openai]
+pip install agentchord[anthropic]
+pip install agentchord[all]       # 전체
 
-# With RAG support
-pip install agentweave[rag]       # ChromaDB
-pip install agentweave[rag-full]  # ChromaDB + FAISS + SentenceTransformers + PDF
+# RAG 지원
+pip install agentchord[rag]       # ChromaDB
+pip install agentchord[rag-full]  # ChromaDB + FAISS + SentenceTransformers + PDF
 ```
 
-### Your First Agent
+### 3줄 에이전트
 
 ```python
-from agentweave import Agent
+from agentchord import Agent
+
+agent = Agent(name="assistant", role="AI 도우미", model="gpt-4o-mini")
+result = agent.run_sync("AgentChord가 뭔가요?")
+print(result.output)
+# Tokens: 152, Cost: $0.0002
+```
+
+---
+
+## 핵심 기능
+
+### Agent
+
+`run()` (async), `run_sync()` (동기), `stream()` (스트리밍)을 지원합니다. 도구 호출, 메모리, 비용 추적, 복원력 설정을 조합할 수 있습니다.
+
+```python
+from agentchord import Agent
 
 agent = Agent(
     name="assistant",
-    role="Helpful AI assistant",
+    role="AI 도우미",
     model="gpt-4o-mini",
 )
-
-result = agent.run_sync("What is AgentWeave?")
-print(result.output)
+result = await agent.run("안녕하세요")
 print(f"Tokens: {result.usage.total_tokens}, Cost: ${result.cost:.4f}")
 ```
 
-### Multi-Agent Workflow
+### Workflow (Flow DSL)
+
+`->` 는 순차 실행, `[]` 는 병렬 실행입니다. `MergeStrategy` 로 병렬 결과를 병합합니다.
 
 ```python
-from agentweave import Agent, Workflow
+from agentchord import Agent, Workflow
 
-researcher = Agent(name="researcher", role="Research specialist", model="gpt-4o-mini")
-writer = Agent(name="writer", role="Content writer", model="gpt-4o-mini")
-reviewer = Agent(name="reviewer", role="Quality reviewer", model="gpt-4o-mini")
+researcher = Agent(name="researcher", role="조사 전문가", model="gpt-4o-mini")
+writer = Agent(name="writer", role="작성자", model="gpt-4o-mini")
+reviewer = Agent(name="reviewer", role="검토자", model="gpt-4o-mini")
 
+# 순차: researcher -> writer -> reviewer
 workflow = Workflow(
     agents=[researcher, writer, reviewer],
     flow="researcher -> writer -> reviewer",
 )
+result = workflow.run_sync("AI 트렌드에 대해 작성해주세요")
 
-result = workflow.run_sync("Write about AI trends")
-print(result.output)
-print(f"Total cost: ${result.total_cost:.4f}")
-```
-
-### Multi-Agent Orchestration
-
-Coordinate multiple agents using built-in strategies:
-
-```python
-from agentweave import Agent, AgentTeam
-
-# Define specialized agents
-researcher = Agent(name="researcher", role="Research expert", model="gpt-4o-mini")
-writer = Agent(name="writer", role="Content writer", model="gpt-4o-mini")
-reviewer = Agent(name="reviewer", role="Quality reviewer", model="gpt-4o-mini")
-
-# Create coordinated team
-team = AgentTeam(
-    name="content-team",
-    members=[researcher, writer, reviewer],
-    strategy="coordinator",  # coordinator, round_robin, debate, map_reduce
-    max_rounds=5,
-)
-
-result = await team.run("Write a blog post about AI safety")
-print(result.output)
-print(f"Cost: ${result.total_cost:.4f}, Rounds: {result.rounds}")
-```
-
-**Orchestration Strategies:**
-
-| Strategy | Pattern | Best For |
-|----------|---------|----------|
-| `coordinator` | Delegation via tools | Complex hierarchical tasks |
-| `round_robin` | Sequential pipeline | Iterative refinement workflows |
-| `debate` | Multi-perspective synthesis | Decision analysis, brainstorming |
-| `map_reduce` | Parallel decomposition + aggregation | Data processing, divide-and-conquer |
-
-### Parallel Execution
-
-```python
+# 병렬 + 순차: 두 분석가 동시 실행 후 요약
 workflow = Workflow(
     agents=[analyst1, analyst2, summarizer],
     flow="[analyst1, analyst2] -> summarizer",
 )
 ```
 
-### Tools
+### 도구
+
+`@tool` 데코레이터로 함수를 도구로 변환합니다. 타입 힌트에서 JSON Schema가 자동 생성됩니다.
 
 ```python
-from agentweave import Agent, tool
+from agentchord import Agent, tool
 
-@tool(description="Get current weather")
+@tool(description="현재 날씨 조회")
 def get_weather(city: str) -> str:
-    return f"Weather in {city}: 22C, Sunny"
+    return f"{city}: 22도, 맑음"
 
 agent = Agent(
     name="weather-bot",
-    role="Weather assistant",
+    role="날씨 도우미",
     model="gpt-4o-mini",
     tools=[get_weather],
 )
-
-result = await agent.run("What's the weather in Seoul?")
+result = await agent.run("서울 날씨 알려줘")
 ```
 
-### Streaming
+### 메모리
+
+`ConversationMemory` (대화 이력), `SemanticMemory` (임베딩 기반 검색), `WorkingMemory` (키-값 스크래치패드)를 지원합니다. `JSONFileStore` 또는 `SQLiteStore` 로 영속화할 수 있습니다.
 
 ```python
-async for chunk in agent.stream("Tell me a story"):
-    print(chunk.delta, end="", flush=True)
+from agentchord import Agent, ConversationMemory
+
+memory = ConversationMemory()
+agent = Agent(name="chatbot", role="대화 도우미", model="gpt-4o-mini", memory=memory)
+
+await agent.run("제 이름은 Alice입니다")
+await agent.run("제 이름이 뭐였죠?")  # Alice를 기억합니다
 ```
 
-### Multiple Providers
+### LLM 프로바이더
+
+OpenAI, Anthropic, Gemini, Ollama 4개 프로바이더를 내장합니다. 모두 동일한 `BaseLLMProvider` ABC를 구현하므로 한 줄 변경으로 교체할 수 있습니다.
 
 ```python
 # OpenAI
-agent = Agent(name="gpt", role="Assistant", model="gpt-4o")
+agent = Agent(name="gpt", role="도우미", model="gpt-4o")
 
 # Anthropic
-agent = Agent(name="claude", role="Assistant", model="claude-3-5-sonnet")
+agent = Agent(name="claude", role="도우미", model="claude-3-5-sonnet")
 
-# Google Gemini
-agent = Agent(name="gemini", role="Assistant", model="gemini-2.0-flash")
+# Google Gemini (httpx 기반, OpenAI 호환 API)
+agent = Agent(name="gemini", role="도우미", model="gemini-2.0-flash")
 
-# Ollama (local)
-agent = Agent(name="local", role="Assistant", model="ollama/llama3.2")
+# Ollama (로컬, httpx 기반)
+agent = Agent(name="local", role="도우미", model="ollama/llama3.2")
 ```
 
-### MCP Integration
+### 복원력
+
+`RetryPolicy` (지수 백오프 + 지터), `CircuitBreaker` (장애 임계값 + half-open), `TimeoutManager` 를 `ResilienceConfig` 로 조합합니다.
 
 ```python
-from agentweave import Agent, MCPClient
-
-async with MCPClient() as mcp:
-    await mcp.connect("npx", ["-y", "@anthropic/mcp-server-github"])
-
-    agent = Agent(name="dev", role="Developer", model="gpt-4o", mcp_client=mcp)
-    await agent.setup_mcp()
-
-    result = await agent.run("List recent issues")
-```
-
-### Resilience
-
-```python
-from agentweave import Agent, ResilienceConfig, RetryPolicy, CircuitBreaker
+from agentchord import Agent, ResilienceConfig, RetryPolicy, CircuitBreaker
 
 agent = Agent(
     name="robust",
-    role="Reliable assistant",
+    role="안정적인 도우미",
     model="gpt-4o-mini",
     resilience=ResilienceConfig(
         retry_policy=RetryPolicy(max_retries=3),
@@ -384,28 +176,37 @@ agent = Agent(
 )
 ```
 
-### Memory
+### 비용 추적
+
+에이전트/워크플로우별 토큰 사용량과 비용을 추적합니다. 예산 한도를 설정할 수 있습니다.
 
 ```python
-from agentweave import Agent, ConversationMemory
+from agentchord import Agent, CostTracker
 
-memory = ConversationMemory()
-agent = Agent(
-    name="chatbot",
-    role="Conversational assistant",
-    model="gpt-4o-mini",
-    memory=memory,
-)
+tracker = CostTracker(budget_limit=10.0)  # $10 예산
+agent = Agent(name="tracked", role="도우미", model="gpt-4o-mini", cost_tracker=tracker)
 
-await agent.run("My name is Alice")
-await agent.run("What's my name?")  # Remembers: Alice
+await agent.run("안녕하세요!")
+summary = tracker.get_summary()
+print(f"총 비용: ${summary.total_cost:.4f}, 토큰: {summary.total_tokens:,}")
 ```
 
-### Structured Output
+### 스트리밍
+
+`agent.stream()` 으로 실시간 토큰 스트리밍을 합니다. 도구 호출이 필요한 경우 자동으로 hybrid 모드 (complete + stream)로 전환됩니다.
+
+```python
+async for chunk in agent.stream("이야기 하나 해주세요"):
+    print(chunk.delta, end="", flush=True)
+```
+
+### 구조화된 출력
+
+Pydantic 모델을 JSON Schema로 변환하여 LLM에 전달하고, 응답을 자동 검증합니다.
 
 ```python
 from pydantic import BaseModel
-from agentweave import Agent, OutputSchema
+from agentchord import Agent, OutputSchema
 
 class MovieReview(BaseModel):
     title: str
@@ -414,255 +215,180 @@ class MovieReview(BaseModel):
     pros: list[str]
     cons: list[str]
 
-agent = Agent(name="critic", role="Film critic", model="gpt-4o-mini")
+agent = Agent(name="critic", role="영화 평론가", model="gpt-4o-mini")
 result = await agent.run(
-    "Review the movie Inception",
+    "인셉션 리뷰해줘",
     output_schema=OutputSchema(MovieReview),
 )
-review = result.structured_output  # Validated MovieReview instance
+review = result.structured_output  # 검증된 MovieReview 인스턴스
 ```
 
-### RAG Pipeline
+### RAG
+
+`RAGPipeline` 으로 문서 수집 -> 검색 -> 생성을 처리합니다. BM25 + Vector 하이브리드 검색 (RRF fusion, k=60)과 RAGAS 스타일 평가 (Faithfulness, Answer Relevancy, Context Relevancy)를 내장합니다.
 
 ```python
-from agentweave import RAGPipeline, Document
-from agentweave.rag.embeddings.openai import OpenAIEmbeddings
-from agentweave.llm.openai import OpenAIProvider
+from agentchord import RAGPipeline, Document
+from agentchord.rag.embeddings.openai import OpenAIEmbeddings
+from agentchord.llm.openai import OpenAIProvider
 
 pipeline = RAGPipeline(
     llm=OpenAIProvider(model="gpt-4o-mini"),
     embedding_provider=OpenAIEmbeddings(),
 )
 
-# Ingest documents
-docs = [Document(id="doc1", content="AgentWeave is a multi-agent framework...")]
+# 문서 수집
+docs = [Document(id="doc1", content="AgentChord는 멀티에이전트 프레임워크입니다...")]
 await pipeline.ingest_documents(docs)
 
-# Query with hybrid search (Vector + BM25 + RRF)
-response = await pipeline.query("What is AgentWeave?")
+# 하이브리드 검색 + 생성
+response = await pipeline.query("AgentChord가 뭔가요?")
 print(response.answer)
-print(f"Sources: {response.source_documents}")
 ```
 
-### Cost Tracking
+**RAG 구성 요소:**
+
+| 계층 | 구현체 |
+|------|--------|
+| 문서 로더 | Text, PDF, Web, Directory |
+| 청킹 | Recursive, Semantic, Parent-Child |
+| 임베딩 | OpenAI, Ollama, Gemini, SentenceTransformer |
+| 벡터 스토어 | InMemory, ChromaDB, FAISS |
+| 검색 | BM25 (Okapi), Vector, Hybrid (RRF) |
+| 리랭킹 | CrossEncoder, LLM 기반 |
+| 평가 | Faithfulness, Answer Relevancy, Context Relevancy |
+
+### 멀티에이전트 오케스트레이션
+
+`AgentTeam` 으로 여러 에이전트를 조율합니다. 4가지 전략을 지원하며, `consult` 기능으로 에이전트 간 상호 참조가 가능합니다.
 
 ```python
-from agentweave import Agent, CostTracker
+from agentchord import Agent, AgentTeam
 
-tracker = CostTracker(budget_limit=10.0)  # $10 budget
-agent = Agent(name="tracked", role="Assistant", model="gpt-4o-mini", cost_tracker=tracker)
+researcher = Agent(name="researcher", role="조사 전문가", model="gpt-4o-mini")
+writer = Agent(name="writer", role="작성자", model="gpt-4o-mini")
+reviewer = Agent(name="reviewer", role="검토자", model="gpt-4o-mini")
 
-await agent.run("Hello!")
-summary = tracker.get_summary()
-print(f"Total cost: ${summary.total_cost:.4f}")
-print(f"Total tokens: {summary.total_tokens:,}")
+team = AgentTeam(
+    name="content-team",
+    members=[researcher, writer, reviewer],
+    strategy="coordinator",  # coordinator, round_robin, debate, map_reduce
+    max_rounds=5,
+)
+
+result = await team.run("AI 안전에 대한 블로그 글을 작성하세요")
+print(f"비용: ${result.total_cost:.4f}, 라운드: {result.rounds}")
 ```
 
-### Observability (OpenTelemetry)
+**오케스트레이션 전략:**
+
+| 전략 | 패턴 | 적합한 작업 |
+|------|------|-------------|
+| `coordinator` | 도구 기반 위임 | 계층적 복잡 작업 |
+| `round_robin` | 순차 파이프라인 | 반복 개선 워크플로우 |
+| `debate` | 다관점 합성 | 의사결정, 브레인스토밍 |
+| `map_reduce` | 병렬 분해 + 집계 | 데이터 처리, 분할 정복 |
+
+### MCP / A2A 프로토콜
+
+MCP 클라이언트로 외부 도구 서버에 연결하고, A2A 서버/클라이언트로 에이전트 간 통신을 합니다.
 
 ```python
-from agentweave import Agent, AgentWeaveTracer, setup_telemetry
+from agentchord import Agent, MCPClient
 
-# Auto-instrument all agent/workflow/LLM/tool operations
-setup_telemetry(service_name="my-agent-app")
-
-agent = Agent(name="traced", role="Assistant", model="gpt-4o-mini")
-result = await agent.run("Hello!")
-# Spans exported to your configured OTel backend (Jaeger, Datadog, etc.)
+async with MCPClient() as mcp:
+    await mcp.connect("npx", ["-y", "@anthropic/mcp-server-github"])
+    agent = Agent(name="dev", role="개발자", model="gpt-4o", mcp_client=mcp)
+    await agent.setup_mcp()
+    result = await agent.run("최근 이슈 목록 보여줘")
 ```
 
 ---
 
-## Provider Support
+## 설치 옵션
 
-| Provider | Models | Protocol | Extra Required |
-|----------|--------|----------|---------------|
-| OpenAI | gpt-4o, gpt-4o-mini, gpt-3.5-turbo | REST (openai SDK) | `pip install agentweave[openai]` |
-| Anthropic | claude-3-5-sonnet, claude-3-haiku | REST (anthropic SDK) | `pip install agentweave[anthropic]` |
-| Google Gemini | gemini-2.0-flash, gemini-1.5-pro | OpenAI-compat (httpx) | None |
-| Ollama | llama3.2, mistral, phi3, etc. | OpenAI-compat (httpx) | None |
+| Extra | 포함 패키지 | 용도 |
+|-------|-------------|------|
+| `openai` | openai | OpenAI 프로바이더 |
+| `anthropic` | anthropic | Anthropic 프로바이더 |
+| `mcp` | mcp | MCP 클라이언트 |
+| `a2a` | starlette, uvicorn | A2A 서버 |
+| `storage` | aiosqlite | SQLiteStore 영속 메모리 |
+| `telemetry` | opentelemetry-api, opentelemetry-sdk | OpenTelemetry 추적 |
+| `rag` | chromadb | ChromaDB 벡터 스토어 |
+| `rag-full` | chromadb, faiss-cpu, numpy, sentence-transformers, pypdf | RAG 전체 기능 |
+| `all` | 위 모든 패키지 | 전체 설치 |
 
-All providers implement the same `BaseLLMProvider` ABC -- swap providers with a single line change.
+코어 의존성은 4개뿐입니다: `pydantic`, `httpx`, `rich`, `tenacity`.
 
----
-
-## Examples
-
-See the [examples/](examples/) directory for 16 complete examples:
-
-| # | File | Description |
-|---|------|-------------|
-| 01 | hello_world.py | Basic Agent usage |
-| 02 | multi_model.py | Multiple LLM providers |
-| 03 | workflow_sequential.py | Sequential workflow |
-| 04 | workflow_parallel.py | Parallel workflow |
-| 05 | with_mcp.py | MCP integration |
-| 06 | a2a_server.py | Agent-to-Agent protocol |
-| 07 | memory_system.py | Memory usage |
-| 08 | cost_tracking.py | Token and cost tracking |
-| 09 | tools.py | Tool system |
-| 10 | streaming.py | Streaming with tools |
-| 11 | full_agent.py | All features combined |
-| 12 | memory_persistence.py | Persistent memory stores (JSON, SQLite) |
-| 12 | lifecycle_management.py | Async context managers |
-| 12 | trace_collector.py | Execution tracing and export |
-| 13 | structured_output.py | Structured output with Pydantic |
-| 14 | rag_pipeline.py | RAG ingest, retrieve, generate |
+Gemini와 Ollama는 추가 패키지 없이 httpx로 직접 통신합니다.
 
 ---
 
-## Comparison
+## 예제
 
-A detailed feature-by-feature comparison with other popular agent frameworks:
+[examples/](examples/) 디렉토리에 18개의 예제가 있습니다:
 
-| Feature | AgentWeave | LangGraph | CrewAI | AutoGen |
-|---------|-----------|-----------|--------|---------|
-| **LLM Providers** | 4 built-in (OpenAI, Anthropic, Gemini, Ollama) | 80+ via integrations | LiteLLM wrapper | OpenAI-centric |
-| **Provider Interface** | `BaseLLMProvider` ABC (custom providers in ~50 LOC) | `BaseChatModel` | LiteLLM | `ModelClient` |
-| **Workflow Patterns** | Sequential, Parallel, Composite (Flow DSL) | Graph (nodes + edges) | Task delegation | Conversation turns |
-| **Memory Types** | Conversation + Semantic + Working | Checkpointer | Short-term + Long-term | Chat history |
-| **Memory Persistence** | JSON file, SQLite, custom `MemoryStore` ABC | SQLite, PostgreSQL | None built-in | None |
-| **Tool System** | `@tool` decorator + auto JSON Schema | `@tool` decorator | `@tool` decorator | Function calling |
-| **RAG Pipeline** | Full built-in (Loader -> Chunk -> Embed -> Search -> Rerank -> Generate) | Via retrievers | None built-in | None |
-| **RAG: Chunking** | Recursive, Semantic, Parent-Child | RecursiveText | N/A | N/A |
-| **RAG: Search** | BM25 + Vector + Hybrid (RRF k=60) | Vector only | N/A | N/A |
-| **RAG: Evaluation** | RAGAS (Faithfulness, Answer Relevancy, Context Relevancy) | None | N/A | N/A |
-| **Protocol: MCP** | Native client + adapter (MCPTool -> Tool bridge) | Via integration | None | None |
-| **Protocol: A2A** | Native client + server | None | None | None |
-| **Cost Tracking** | Built-in CostTracker (budget limits, alerts, per-model pricing) | Callbacks | Built-in | None |
-| **Resilience** | RetryPolicy + CircuitBreaker + TimeoutManager (composable) | None built-in | None | None |
-| **Observability** | OpenTelemetry native (agent/workflow/LLM/tool spans) | LangSmith (SaaS) | Built-in | None |
-| **Tracing Export** | TraceCollector (JSON/JSONL, save/load round-trip) | LangSmith | Proprietary | None |
-| **Structured Output** | Pydantic -> JSON Schema -> LLM -> validate | Output parsers | None | None |
-| **Streaming** | `agent.stream()` with tool calling (hybrid complete + stream) | Streaming events | None | None |
-| **Type Safety** | mypy strict + `py.typed` (PEP 561) | Partial types | Partial | Partial |
-| **Async** | async-first (`asyncio`), `run_sync()` convenience | async-first | sync-first | async |
-| **Tests** | 701 (82% coverage, CI matrix Py 3.10-3.12) | Varies | Varies | Varies |
-| **Dependencies** | 4 core (pydantic, httpx, rich, tenacity) | 15+ | 10+ | 5+ |
+| # | 파일 | 설명 |
+|---|------|------|
+| 01 | hello_world.py | 기본 Agent 사용법 |
+| 02 | multi_model.py | 여러 LLM 프로바이더 |
+| 03 | workflow_sequential.py | 순차 워크플로우 |
+| 04 | workflow_parallel.py | 병렬 워크플로우 |
+| 05 | with_mcp.py | MCP 통합 |
+| 06 | a2a_server.py | A2A 프로토콜 |
+| 07 | memory_system.py | 메모리 시스템 |
+| 08 | cost_tracking.py | 비용 추적 |
+| 09 | tools.py | 도구 시스템 |
+| 10 | streaming.py | 스트리밍 + 도구 호출 |
+| 11 | full_agent.py | 전체 기능 통합 |
+| 12 | memory_persistence.py | 영속 메모리 (JSON, SQLite) |
+| 12 | lifecycle_management.py | async 컨텍스트 매니저 |
+| 12 | trace_collector.py | 실행 추적 + 내보내기 |
+| 13 | structured_output.py | Pydantic 구조화된 출력 |
+| 14 | rag_pipeline.py | RAG 파이프라인 |
+| 15 | multi_agent_team.py | 멀티에이전트 팀 |
+| 16 | debate_strategy.py | 토론 전략 |
 
 ---
 
-## Project Structure
+## 문서
 
-```
-agentweave/
-├── core/              # Agent, Workflow, Executor, State, Config, Structured Output
-│   ├── agent.py       #   Agent class (run, stream, tool loop, memory, resilience)
-│   ├── workflow.py    #   Workflow class + FlowParser (DSL -> Executors)
-│   ├── executor.py    #   Sequential / Parallel / Composite executors
-│   ├── structured.py  #   OutputSchema (Pydantic -> JSON Schema -> validation)
-│   └── types.py       #   AgentResult, LLMResponse, Message, ToolCall, Usage
-├── llm/               # LLM Provider abstraction layer
-│   ├── base.py        #   BaseLLMProvider ABC (complete, stream)
-│   ├── openai.py      #   OpenAI provider (tool calls, streaming)
-│   ├── anthropic.py   #   Anthropic provider (tool_use blocks)
-│   ├── gemini.py      #   Gemini provider (OpenAI-compat via httpx)
-│   ├── ollama.py      #   Ollama provider (local models via httpx)
-│   └── registry.py    #   ProviderRegistry (model prefix -> provider routing)
-├── protocols/         # Inter-agent communication protocols
-│   ├── mcp/           #   MCP client, adapter (MCPTool -> Tool bridge), types
-│   └── a2a/           #   A2A client, server, types (AgentCard, Task, Message)
-├── tools/             # Tool system
-│   ├── decorator.py   #   @tool decorator (inspect -> JSON Schema)
-│   ├── base.py        #   Tool, ToolParameter dataclasses
-│   └── executor.py    #   ToolExecutor (dispatch, error handling)
-├── memory/            # Memory subsystem
-│   ├── base.py        #   BaseMemory ABC, MemoryEntry (Pydantic)
-│   ├── conversation.py#   ConversationMemory (windowed history)
-│   ├── semantic.py    #   SemanticMemory (embedding-based recall)
-│   ├── working.py     #   WorkingMemory (key-value scratchpad)
-│   └── stores/        #   Persistent backends (JSONFileStore, SQLiteStore)
-├── resilience/        # Fault tolerance
-│   ├── config.py      #   ResilienceConfig (unified Pydantic config)
-│   ├── retry.py       #   RetryPolicy (exponential backoff, jitter)
-│   ├── circuit_breaker.py  # CircuitBreaker (failure threshold, half-open)
-│   └── timeout.py     #   TimeoutManager (per-operation timeouts)
-├── tracking/          # Cost and usage tracking
-│   ├── cost.py        #   CostTracker (budget limits, alerts, thread-safe)
-│   ├── pricing.py     #   Per-model token pricing tables
-│   ├── models.py      #   TokenUsage, CostEntry, CostSummary
-│   └── callbacks.py   #   CallbackManager (lifecycle hooks)
-├── telemetry/         # Observability
-│   ├── tracer.py      #   AgentWeaveTracer (OpenTelemetry spans)
-│   ├── metrics.py     #   AgentWeaveMetrics (OTel counters/histograms)
-│   └── collector.py   #   TraceCollector (JSON/JSONL export, save/load)
-├── rag/               # Retrieval-Augmented Generation
-│   ├── pipeline.py    #   RAGPipeline (ingest -> retrieve -> generate)
-│   ├── types.py       #   Document, Chunk, SearchResult, RAGResponse
-│   ├── tools.py       #   create_rag_tools() (Agentic RAG via Tool calling)
-│   ├── loaders/       #   TextLoader, DirectoryLoader, PDFLoader, WebLoader
-│   ├── chunking/      #   RecursiveCharacter, Semantic, ParentChild
-│   ├── embeddings/    #   OpenAI, Ollama, SentenceTransformer
-│   ├── vectorstore/   #   InMemory, ChromaDB, FAISS
-│   ├── search/        #   BM25Search, HybridSearch (RRF), Reranker
-│   └── evaluation/    #   RAGEvaluator (Faithfulness, AnswerRelevancy, ContextRelevancy)
-├── logging/           # Structured logging (JSON prod / text dev)
-└── errors/            # Exception hierarchy (AgentWeaveError -> specialized)
-```
+전체 문서는 [agentchord.github.io/agentchord](https://agentchord.github.io/agentchord)에서 확인할 수 있습니다.
+
+- [시작하기](https://agentchord.github.io/agentchord/getting-started/)
+- [핵심 개념](https://agentchord.github.io/agentchord/core-concepts/)
+- 가이드: [도구](https://agentchord.github.io/agentchord/guides/tools/) / [메모리](https://agentchord.github.io/agentchord/guides/memory/) / [프로바이더](https://agentchord.github.io/agentchord/guides/providers/) / [복원력](https://agentchord.github.io/agentchord/guides/resilience/) / [스트리밍](https://agentchord.github.io/agentchord/guides/streaming/) / [RAG](https://agentchord.github.io/agentchord/guides/rag/) / [오케스트레이션](https://agentchord.github.io/agentchord/guides/orchestration/)
+- [API 레퍼런스](https://agentchord.github.io/agentchord/api/)
 
 ---
 
-## Benchmarks
-
-23 performance benchmarks measure framework overhead using mock providers (no real LLM calls):
-
-| Category | Benchmark | Target | Method |
-|----------|-----------|--------|--------|
-| **Agent Execution** | Run latency | < 10ms avg, < 20ms p99 | 100 iterations |
-| | With memory | < 15ms avg | 100 iterations |
-| | With cost tracker | < 15ms avg | 50 iterations |
-| | Throughput | > 50 ops/sec | 100 sequential runs |
-| | Streaming | < 10ms avg | 50 iterations |
-| **Memory** | Conversation add (1K entries) | < 100ms | Bulk insert |
-| | Conversation search (5K entries) | < 500ms | 100 searches |
-| | Semantic search (500 entries) | < 2000ms | 50 searches |
-| | Working memory ops (1K cycles) | < 100ms | Set + Get |
-| **Workflow** | Sequential (3 agents) | < 50ms avg | 20 runs |
-| | Parallel (5 agents) | < 50ms avg | 20 runs |
-| | Complex mixed (10 agents) | < 100ms avg | 10 runs |
-| **Structured Output** | Schema validation (1K) | < 500ms | Pydantic |
-| | JSON extraction (1K) | < 1000ms | Markdown-wrapped |
-| **Cost Tracking** | Track 1K entries | < 100ms | Bulk |
-| | Generate summary | < 50ms | 100 calls |
-| **Tool Execution** | Registration (10 tools) | < 10ms | Register |
-| | Sync execution (500) | < 100ms | Call |
-| | Async execution (500) | < 100ms | Call |
+## 개발
 
 ```bash
-make bench  # Run all 23 benchmarks
-```
-
----
-
-## Development
-
-```bash
-# Install dev dependencies
+# 개발 환경 설치
 pip install -e ".[all]"
 pip install pytest pytest-asyncio pytest-cov ruff mypy
 
-# Run tests
-make test              # All tests (701 tests)
-make test-unit         # Unit tests only
-make test-integration  # Integration tests only
-make test-cov          # With coverage report
+# 테스트
+make test              # 전체 테스트
+make test-unit         # 단위 테스트
+make test-integration  # 통합 테스트
+make test-cov          # 커버리지 리포트
 
-# Code quality
-make lint              # Ruff linter
-make format            # Ruff formatter
-make typecheck         # mypy strict mode
-make all               # All checks
+# 코드 품질
+make lint              # Ruff 린터
+make format            # Ruff 포매터
+make typecheck         # mypy strict 모드
+make bench             # 23개 벤치마크
+
+make all               # 전체 체크
 ```
 
-### CI/CD
-
-- GitHub Actions matrix: Python 3.10, 3.11, 3.12
-- Pre-commit hooks: ruff lint + format
-- Coverage threshold: 75% (fail_under)
-- Automated PyPI publishing via OIDC trusted publisher
+**CI/CD**: GitHub Actions (Python 3.10 / 3.11 / 3.12 매트릭스), pre-commit hooks (ruff), 커버리지 임계값 75%, OIDC trusted publisher를 통한 PyPI 배포.
 
 ---
 
-## License
+## 라이선스
 
-MIT License -- see [LICENSE](LICENSE) for details.
+MIT License -- 자세한 내용은 [LICENSE](LICENSE)를 참고하세요.

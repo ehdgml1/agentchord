@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from agentweave.orchestration.message_bus import MessageBus
-from agentweave.orchestration.types import AgentMessage, MessageType
-from agentweave.tracking.callbacks import CallbackManager
+from agentchord.orchestration.message_bus import MessageBus
+from agentchord.orchestration.types import AgentMessage, MessageType
+from agentchord.tracking.callbacks import CallbackManager
 
 
 class TestMessageBus:
@@ -373,7 +373,7 @@ class TestMessageBus:
         message = AgentMessage(
             sender="sender",
             recipient=None,
-            message_type=MessageType.QUERY,  # Not BROADCAST type
+            message_type=MessageType.RESPONSE,  # Not BROADCAST type
             content="Question for all",
         )
         await bus.send(message)

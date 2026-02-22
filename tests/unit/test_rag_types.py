@@ -1,5 +1,5 @@
 """Tests for RAG type definitions."""
-from agentweave.rag.types import Chunk, Document, RAGResponse, RetrievalResult, SearchResult
+from agentchord.rag.types import Chunk, Document, RAGResponse, RetrievalResult, SearchResult
 
 
 class TestDocument:

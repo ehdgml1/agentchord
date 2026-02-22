@@ -1,6 +1,6 @@
-# AgentWeave Code Generator
+# AgentChord Code Generator
 
-The AgentWeave code generator converts visual workflow graphs into executable Python code using the AgentWeave framework.
+The AgentChord code generator converts visual workflow graphs into executable Python code using the AgentChord framework.
 
 ## Features
 
@@ -43,7 +43,7 @@ Agent1 → Agent2 → Agent3
 
 **Output:**
 ```python
-from agentweave import Agent, Workflow
+from agentchord import Agent, Workflow
 
 agent1 = Agent(
     name="Agent1",
@@ -87,7 +87,7 @@ Agent1 → Condition → Agent2 (true)
 **Output:**
 ```python
 import asyncio
-from agentweave import Agent
+from agentchord import Agent
 
 agent1 = Agent(
     name="Agent1",
@@ -142,7 +142,7 @@ Parallel → Agent1
 **Output:**
 ```python
 import asyncio
-from agentweave import Agent
+from agentchord import Agent
 
 agent1 = Agent(
     name="Agent1",
@@ -195,7 +195,7 @@ FeedbackLoop → Agent1 (loop body)
 **Output:**
 ```python
 import asyncio
-from agentweave import Agent
+from agentchord import Agent
 
 agent1 = Agent(
     name="LoopAgent",
@@ -233,8 +233,8 @@ MCPTool(server: "filesystem", tool: "read_file")
 **Output:**
 ```python
 import asyncio
-from agentweave import Agent
-# from agentweave.protocols.mcp import MCPClient
+from agentchord import Agent
+# from agentchord.protocols.mcp import MCPClient
 
 # --- Workflow Logic ---
 async def workflow_main(input_text: str):
@@ -272,7 +272,7 @@ Condition(result.valid)
 **Output:**
 ```python
 import asyncio
-from agentweave import Agent
+from agentchord import Agent
 
 agent1 = Agent(
     name="InputAgent",

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { useExecutionStore } from '../stores/executionStore';
 
 export interface ExecutionEvent {
   type: 'started' | 'node_started' | 'node_completed' | 'completed' | 'failed' | 'done';
@@ -10,16 +11,24 @@ export interface ExecutionEvent {
 export function useExecutionProgress(executionId: string | null) {
   const [events, setEvents] = useState<ExecutionEvent[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [connectedId, setConnectedId] = useState<string | null>(null);
   const token = useAuthStore(s => s.token);
+  const setNodeStatus = useExecutionStore(s => s.setNodeStatus);
+  const resetNodeStatuses = useExecutionStore(s => s.resetNodeStatuses);
 
   const connect = useCallback(() => {
-    if (!executionId || !token) return;
+    if (!executionId || !token) {
+      setConnectedId(null);
+      return;
+    }
 
     // EventSource doesn't support custom headers, use fetch-based SSE
     const controller = new AbortController();
 
-    setIsStreaming(true);
+    setConnectedId(executionId);
     setEvents([]);
+    resetNodeStatuses();
+    setIsStreaming(true);
 
     const fetchSSE = async () => {
       try {
@@ -54,6 +63,16 @@ export function useExecutionProgress(executionId: string | null) {
                 const event: ExecutionEvent = JSON.parse(line.slice(6));
                 setEvents(prev => [...prev, event]);
 
+                // Update node execution statuses for real-time visualization
+                if (event.type === 'node_started' && event.data?.node_id) {
+                  setNodeStatus(event.data.node_id as string, 'running');
+                } else if (event.type === 'node_completed' && event.data?.node_id) {
+                  const status = event.data.status === 'completed' ? 'completed' : 'failed';
+                  setNodeStatus(event.data.node_id as string, status);
+                } else if (event.type === 'started') {
+                  resetNodeStatuses();
+                }
+
                 if (event.type === 'done' || event.type === 'completed' || event.type === 'failed') {
                   setIsStreaming(false);
                   return;
@@ -84,5 +103,5 @@ export function useExecutionProgress(executionId: string | null) {
     return cleanup;
   }, [connect]);
 
-  return { events, isStreaming };
+  return { events, isStreaming, connectedId };
 }

@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from agentweave.orchestration.shared_context import ContextUpdate, SharedContext
+from agentchord.orchestration.shared_context import ContextUpdate, SharedContext
 
 
 class TestSharedContext:
@@ -494,3 +494,18 @@ class TestSharedContextAsyncSafety:
         # (each snapshot is a consistent point in time)
         for i in range(1, len(lengths)):
             assert lengths[i] >= lengths[i - 1] or lengths[i] == 0
+
+
+class TestSharedContextDeque:
+    """Tests for deque-based history in SharedContext."""
+
+    @pytest.mark.asyncio
+    async def test_history_respects_max_history_via_deque(self) -> None:
+        """History uses deque with maxlen for O(1) trimming."""
+        ctx = SharedContext(max_history=3)
+        for i in range(5):
+            await ctx.set(f"key_{i}", i, agent="test")
+        history = await ctx.get_history()
+        assert len(history) == 3
+        assert history[0].key == "key_2"
+        assert history[-1].key == "key_4"

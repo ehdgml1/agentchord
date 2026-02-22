@@ -16,7 +16,7 @@ const mockData: AgentBlockData = {
 describe('AgentProperties', () => {
   it('renders Name input with current value', () => {
     const onChange = vi.fn();
-    render(<AgentProperties data={mockData} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={mockData} onChange={onChange} />);
 
     const nameInput = screen.getByLabelText(/name/i);
     expect(nameInput).toHaveValue('Test Agent');
@@ -24,7 +24,7 @@ describe('AgentProperties', () => {
 
   it('renders Role input with current value', () => {
     const onChange = vi.fn();
-    render(<AgentProperties data={mockData} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={mockData} onChange={onChange} />);
 
     const roleInput = screen.getByLabelText(/role/i);
     expect(roleInput).toHaveValue('Assistant');
@@ -32,14 +32,14 @@ describe('AgentProperties', () => {
 
   it('renders model selector', () => {
     const onChange = vi.fn();
-    render(<AgentProperties data={mockData} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={mockData} onChange={onChange} />);
 
     expect(screen.getByText('Model')).toBeInTheDocument();
   });
 
   it('renders temperature display', () => {
     const onChange = vi.fn();
-    render(<AgentProperties data={mockData} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={mockData} onChange={onChange} />);
 
     expect(screen.getByText(/temperature/i)).toBeInTheDocument();
     expect(screen.getByText('0.7')).toBeInTheDocument();
@@ -47,7 +47,7 @@ describe('AgentProperties', () => {
 
   it('renders system prompt textarea', () => {
     const onChange = vi.fn();
-    render(<AgentProperties data={mockData} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={mockData} onChange={onChange} />);
 
     const promptInput = screen.getByLabelText(/system prompt/i);
     expect(promptInput).toHaveValue('Be helpful');
@@ -56,7 +56,7 @@ describe('AgentProperties', () => {
   it('name change calls onChange with { name: value }', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    render(<AgentProperties data={mockData} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={mockData} onChange={onChange} />);
 
     const nameInput = screen.getByLabelText(/name/i);
     await user.type(nameInput, 'X');
@@ -70,7 +70,7 @@ describe('AgentProperties', () => {
   it('role change calls onChange with { role: value }', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    render(<AgentProperties data={mockData} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={mockData} onChange={onChange} />);
 
     const roleInput = screen.getByLabelText(/role/i);
     await user.type(roleInput, 'Y');
@@ -84,7 +84,7 @@ describe('AgentProperties', () => {
   it('system prompt change calls onChange with { systemPrompt: value }', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    render(<AgentProperties data={mockData} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={mockData} onChange={onChange} />);
 
     const promptInput = screen.getByLabelText(/system prompt/i);
     await user.type(promptInput, 'Z');
@@ -97,7 +97,7 @@ describe('AgentProperties', () => {
 
   it('renders model selector with current value', () => {
     const onChange = vi.fn();
-    render(<AgentProperties data={mockData} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={mockData} onChange={onChange} />);
 
     // The select should show the current model value
     const selectTrigger = screen.getByRole('combobox');
@@ -107,7 +107,7 @@ describe('AgentProperties', () => {
   it('temperature shows formatted value', () => {
     const onChange = vi.fn();
     const dataWithTemp = { ...mockData, temperature: 1.3 };
-    render(<AgentProperties data={dataWithTemp} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={dataWithTemp} onChange={onChange} />);
 
     expect(screen.getByText('1.3')).toBeInTheDocument();
   });
@@ -115,7 +115,7 @@ describe('AgentProperties', () => {
   it('handles empty name gracefully', () => {
     const onChange = vi.fn();
     const dataWithEmptyName = { ...mockData, name: '' };
-    render(<AgentProperties data={dataWithEmptyName} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={dataWithEmptyName} onChange={onChange} />);
 
     const nameInput = screen.getByLabelText(/name/i);
     expect(nameInput).toHaveValue('');
@@ -124,7 +124,7 @@ describe('AgentProperties', () => {
   it('handles undefined systemPrompt gracefully', () => {
     const onChange = vi.fn();
     const dataWithoutPrompt = { ...mockData, systemPrompt: undefined };
-    render(<AgentProperties data={dataWithoutPrompt} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={dataWithoutPrompt} onChange={onChange} />);
 
     const promptInput = screen.getByLabelText(/system prompt/i);
     expect(promptInput).toHaveValue('');
@@ -132,7 +132,7 @@ describe('AgentProperties', () => {
 
   it('renders maxTokens input with current value', () => {
     const onChange = vi.fn();
-    render(<AgentProperties data={mockData} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={mockData} onChange={onChange} />);
 
     const maxTokensInput = screen.getByLabelText(/max tokens/i);
     expect(maxTokensInput).toHaveValue(4096);
@@ -141,7 +141,7 @@ describe('AgentProperties', () => {
   it('maxTokens change calls onChange with { maxTokens: value }', async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    render(<AgentProperties data={mockData} onChange={onChange} />);
+    render(<AgentProperties nodeId="node-1" data={mockData} onChange={onChange} />);
 
     const maxTokensInput = screen.getByLabelText(/max tokens/i);
     await user.clear(maxTokensInput);

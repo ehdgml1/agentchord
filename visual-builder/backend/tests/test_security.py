@@ -1,4 +1,4 @@
-"""Comprehensive security tests for AgentWeave Visual Builder.
+"""Comprehensive security tests for AgentChord Visual Builder.
 
 Tests covering:
 1. Webhook HMAC verification

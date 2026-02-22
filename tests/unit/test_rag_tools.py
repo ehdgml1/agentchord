@@ -1,8 +1,8 @@
 """Tests for Agentic RAG tools."""
 import pytest
-from agentweave.rag.pipeline import RAGPipeline
-from agentweave.rag.tools import create_rag_tools
-from agentweave.rag.types import Document
+from agentchord.rag.pipeline import RAGPipeline
+from agentchord.rag.tools import create_rag_tools
+from agentchord.rag.types import Document
 from tests.conftest import MockLLMProvider, MockEmbeddingProvider
 
 
@@ -14,7 +14,7 @@ class TestCreateRAGTools:
             embedding_provider=MockEmbeddingProvider(),
         )
         await pipeline.ingest_documents([
-            Document(content="AgentWeave is a framework for building AI agents."),
+            Document(content="AgentChord is a framework for building AI agents."),
         ])
         return pipeline
 
@@ -36,14 +36,14 @@ class TestCreateRAGTools:
     async def test_rag_search_execution(self, pipeline_with_data):
         tools = create_rag_tools(pipeline_with_data)
         search_tool = next(t for t in tools if t.name == "rag_search")
-        result = await search_tool.execute(query="AgentWeave")
+        result = await search_tool.execute(query="AgentChord")
         assert result.success
         assert isinstance(result.result, str)
 
     async def test_rag_query_execution(self, pipeline_with_data):
         tools = create_rag_tools(pipeline_with_data)
         query_tool = next(t for t in tools if t.name == "rag_query")
-        result = await query_tool.execute(question="What is AgentWeave?")
+        result = await query_tool.execute(question="What is AgentChord?")
         assert result.success
         assert "Tool answer" in result.result
 

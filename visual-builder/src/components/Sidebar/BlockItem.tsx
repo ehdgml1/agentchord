@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Bot, Wrench, GitBranch, GitFork, RefreshCw } from 'lucide-react';
+import { Bot, Wrench, GitBranch, GitFork, RefreshCw, Zap, BookOpen, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { BlockDefinition } from '../../types/blocks';
@@ -10,6 +10,9 @@ const ICON_MAP: Record<string, LucideIcon> = {
   GitBranch,
   GitFork,
   RefreshCw,
+  Zap,
+  BookOpen,
+  Users,
 };
 
 interface BlockItemProps {

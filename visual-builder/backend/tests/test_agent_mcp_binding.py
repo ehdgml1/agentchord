@@ -75,19 +75,22 @@ class TestAgentMCPBinding:
         assert units_param.enum == ["celsius", "fahrenheit"]
 
     async def test_build_agent_tools_invalid_format(self, executor, caplog):
-        """Test that invalid format IDs are skipped with warning."""
-        # Build tools with invalid IDs
+        """Test that non-existent server/tool IDs are skipped with warning."""
+        # Setup empty tools so nothing matches
+        executor.mcp_manager._tools = {}
+
+        # Build tools with IDs that match nothing
         tools = await executor._build_agent_tools([
-            "invalid-format",
-            "also:invalid:format",
-            "",
+            "nonexistent-server",        # server-only, no tools
+            "also:invalid_tool",         # specific tool, server not found
+            "",                          # empty server-only, no tools
         ])
 
         # Should return empty list
         assert len(tools) == 0
 
-        # Check warnings were logged
-        assert "Invalid MCP tool ID format" in caplog.text
+        # Check warnings were logged for missing server/tool
+        assert "No tools found for MCP server" in caplog.text or "MCP tool not found" in caplog.text
 
     async def test_build_agent_tools_missing_tool(self, executor, caplog):
         """Test that missing tools are skipped with warning."""
@@ -318,7 +321,7 @@ class TestAgentMCPBinding:
         assert tools[1].name == "server2__tool2"
 
     async def test_build_agent_tools_partial_success(self, executor, caplog):
-        """Test _build_agent_tools handles partial success (some valid, some invalid)."""
+        """Test _build_agent_tools handles partial success (some valid, some missing)."""
         # Setup mock tools
         executor.mcp_manager._tools = {
             "server1": [
@@ -334,11 +337,11 @@ class TestAgentMCPBinding:
             ],
         }
 
-        # Build tools with mix of valid and invalid IDs
+        # Build tools with mix of valid and missing IDs
         tools = await executor._build_agent_tools([
-            "server1:tool1",  # Valid
-            "invalid-format",  # Invalid
-            "server2:tool2",  # Missing server
+            "server1:tool1",       # Valid specific tool
+            "nonexistent-server",  # Server-only, server not found
+            "server2:tool2",       # Specific tool, server not found
         ])
 
         # Should return only valid tool
@@ -346,5 +349,5 @@ class TestAgentMCPBinding:
         assert tools[0].name == "server1__tool1"
 
         # Check warnings were logged
-        assert "Invalid MCP tool ID format" in caplog.text
+        assert "No tools found for MCP server" in caplog.text
         assert "MCP tool not found" in caplog.text

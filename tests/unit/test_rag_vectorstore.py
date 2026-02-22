@@ -1,7 +1,7 @@
 """Tests for vector store implementations."""
 import pytest
-from agentweave.rag.types import Chunk, SearchResult
-from agentweave.rag.vectorstore.in_memory import InMemoryVectorStore
+from agentchord.rag.types import Chunk, SearchResult
+from agentchord.rag.vectorstore.in_memory import InMemoryVectorStore
 
 # Check if faiss is available for FAISS tests
 try:
@@ -137,7 +137,7 @@ class TestFAISSVectorStore:
 
     @pytest.fixture
     def store(self):
-        from agentweave.rag.vectorstore.faiss import FAISSVectorStore
+        from agentchord.rag.vectorstore.faiss import FAISSVectorStore
         return FAISSVectorStore(dimensions=3)
 
     @pytest.fixture
@@ -197,7 +197,7 @@ class TestFAISSVectorStore:
 
     async def test_dimension_mismatch(self, store):
         """M4: Adding different dimension embeddings raises ValueError."""
-        from agentweave.rag.vectorstore.faiss import FAISSVectorStore
+        from agentchord.rag.vectorstore.faiss import FAISSVectorStore
         store_3d = FAISSVectorStore(dimensions=3)
         c1 = Chunk(id="a", content="x", embedding=[1.0, 0.0, 0.0])  # 3D
         await store_3d.add([c1])
@@ -207,6 +207,6 @@ class TestFAISSVectorStore:
 
     async def test_unsupported_index_type(self):
         """H2: Unsupported index_type raises ValueError."""
-        from agentweave.rag.vectorstore.faiss import FAISSVectorStore
+        from agentchord.rag.vectorstore.faiss import FAISSVectorStore
         with pytest.raises(ValueError, match="Unsupported index_type"):
             FAISSVectorStore(dimensions=3, index_type="hnsw")

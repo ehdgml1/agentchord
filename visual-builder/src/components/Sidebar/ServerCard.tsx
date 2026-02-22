@@ -1,14 +1,31 @@
-import { Star, ShieldCheck, AlertCircle, Download } from 'lucide-react';
+import { useState } from 'react';
+import { Star, ShieldCheck, Key, Download, Loader2, Eye, EyeOff } from 'lucide-react';
 import { Button, Badge, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../ui';
+import { Input } from '../ui';
 import { type MCPServerInfo } from '../../data/mcpCatalog';
 
 interface ServerCardProps {
   server: MCPServerInfo;
   isInstalled: boolean;
-  onInstall: (server: MCPServerInfo) => void;
+  isInstalling?: boolean;
+  onInstall: (server: MCPServerInfo, env: Record<string, string>) => void;
 }
 
-export function ServerCard({ server, isInstalled, onInstall }: ServerCardProps) {
+export function ServerCard({ server, isInstalled, isInstalling, onInstall }: ServerCardProps) {
+  const hasSecrets = server.requiredSecrets && server.requiredSecrets.length > 0;
+  const [secrets, setSecrets] = useState<Record<string, string>>({});
+  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
+
+  const allSecretsFilled = !hasSecrets || server.requiredSecrets!.every((s) => secrets[s]?.trim());
+
+  const handleSecretChange = (key: string, value: string) => {
+    setSecrets((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const toggleShowSecret = (key: string) => {
+    setShowSecrets((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -37,18 +54,38 @@ export function ServerCard({ server, isInstalled, onInstall }: ServerCardProps) 
         <CardDescription className="mt-2">{server.description}</CardDescription>
       </CardHeader>
 
-      {server.requiredSecrets && server.requiredSecrets.length > 0 && (
+      {hasSecrets && !isInstalled && (
         <CardContent>
-          <div className="flex items-start gap-2 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
-            <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-            <div className="text-xs text-amber-900 dark:text-amber-100">
-              <div className="font-medium mb-1">Required secrets:</div>
-              <div className="font-mono text-xs space-y-0.5">
-                {server.requiredSecrets.map((secret) => (
-                  <div key={secret}>{secret}</div>
-                ))}
-              </div>
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Key className="w-3.5 h-3.5" />
+              API Keys
             </div>
+            {server.requiredSecrets!.map((secret) => (
+              <div key={secret} className="space-y-1">
+                <label className="text-xs font-mono text-muted-foreground">{secret}</label>
+                <div className="relative">
+                  <Input
+                    type={showSecrets[secret] ? 'text' : 'password'}
+                    placeholder={`Enter ${secret}`}
+                    value={secrets[secret] || ''}
+                    onChange={(e) => handleSecretChange(secret, e.target.value)}
+                    className="pr-8 text-xs font-mono h-8"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => toggleShowSecret(secret)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showSecrets[secret] ? (
+                      <EyeOff className="w-3.5 h-3.5" />
+                    ) : (
+                      <Eye className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       )}
@@ -57,10 +94,15 @@ export function ServerCard({ server, isInstalled, onInstall }: ServerCardProps) 
         <Button
           size="sm"
           className="w-full"
-          onClick={() => onInstall(server)}
-          disabled={isInstalled}
+          onClick={() => onInstall(server, secrets)}
+          disabled={isInstalled || isInstalling || !allSecretsFilled}
         >
-          {isInstalled ? (
+          {isInstalling ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Installing...
+            </>
+          ) : isInstalled ? (
             'Installed'
           ) : (
             <>

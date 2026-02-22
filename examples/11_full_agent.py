@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Full Agent Integration Example.
 
-AgentWeave의 모든 통합 기능을 하나의 Agent에서 시연합니다:
+AgentChord의 모든 통합 기능을 하나의 Agent에서 시연합니다:
 - Memory (대화 기록 유지)
 - CostTracker (비용 추적)
 - Callbacks (이벤트 모니터링)
@@ -23,18 +23,18 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from unittest.mock import AsyncMock
 
-from agentweave import Agent
-from agentweave.core.types import ToolCall
-from agentweave.memory import ConversationMemory
-from agentweave.tracking import CostTracker, CallbackManager, CallbackEvent, CallbackContext
-from agentweave.tools import tool
-from agentweave.protocols.mcp.types import MCPTool, MCPToolResult
+from agentchord import Agent
+from agentchord.core.types import ToolCall
+from agentchord.memory import ConversationMemory
+from agentchord.tracking import CostTracker, CallbackManager, CallbackEvent, CallbackContext
+from agentchord.tools import tool
+from agentchord.protocols.mcp.types import MCPTool, MCPToolResult
 from tests.conftest import MockToolCallProvider
 
 
 async def main() -> None:
     print("=" * 60)
-    print("AgentWeave Full Integration Demo")
+    print("AgentChord Full Integration Demo")
     print("=" * 60)
 
     # ── 1. 도구 정의 ──
@@ -61,7 +61,7 @@ async def main() -> None:
         ),
     ])
     mock_mcp.call_tool = AsyncMock(
-        return_value=MCPToolResult(content="검색 결과: AgentWeave는 멀티에이전트 프레임워크입니다.", is_error=False)
+        return_value=MCPToolResult(content="검색 결과: AgentChord는 멀티에이전트 프레임워크입니다.", is_error=False)
     )
 
     # ── 3. 콜백 설정 ──

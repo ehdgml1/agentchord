@@ -13,10 +13,10 @@ Key features:
 from __future__ import annotations
 
 import asyncio
-from agentweave.core.agent import Agent
-from agentweave.core.workflow import Workflow
-from agentweave.memory.conversation import ConversationMemory
-from agentweave.memory.stores.sqlite import SQLiteStore
+from agentchord.core.agent import Agent
+from agentchord.core.workflow import Workflow
+from agentchord.memory.conversation import ConversationMemory
+from agentchord.memory.stores.sqlite import SQLiteStore
 
 
 async def example_agent_with_context_manager():
@@ -162,7 +162,7 @@ async def example_nested_workflows():
 async def main():
     """Run all examples."""
     print("\n" + "="*60)
-    print("AgentWeave Lifecycle Management Examples")
+    print("AgentChord Lifecycle Management Examples")
     print("="*60 + "\n")
 
     # Note: These examples use mock providers for demonstration
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     from conftest import MockLLMProvider
 
     # Monkey-patch the registry to use mock provider
-    from agentweave.llm.registry import get_registry
+    from agentchord.llm.registry import get_registry
     registry = get_registry()
     registry.register("mock", lambda model: MockLLMProvider(model=model), prefixes=["mock"])
 

@@ -4,11 +4,11 @@ from __future__ import annotations
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from agentweave.core.agent import Agent
-from agentweave.core.workflow import Workflow
-from agentweave.core.types import LLMResponse, Usage
-from agentweave.memory.conversation import ConversationMemory
-from agentweave.memory.base import MemoryEntry
+from agentchord.core.agent import Agent
+from agentchord.core.workflow import Workflow
+from agentchord.core.types import LLMResponse, Usage
+from agentchord.memory.conversation import ConversationMemory
+from agentchord.memory.base import MemoryEntry
 from tests.conftest import MockLLMProvider
 
 
@@ -35,7 +35,7 @@ class TestAgentLifecycle:
     async def test_agent_flushes_memory_on_exit(self):
         """Memory is flushed to store on context exit."""
         # Create memory with a mock store
-        from agentweave.memory.stores.base import MemoryStore
+        from agentchord.memory.stores.base import MemoryStore
 
         mock_store = AsyncMock(spec=MemoryStore)
         mock_store.save_many = AsyncMock()
@@ -55,7 +55,7 @@ class TestAgentLifecycle:
     @pytest.mark.asyncio
     async def test_agent_loads_memory_on_enter(self):
         """Memory loads from store on context enter."""
-        from agentweave.memory.stores.base import MemoryStore
+        from agentchord.memory.stores.base import MemoryStore
 
         mock_store = AsyncMock(spec=MemoryStore)
         mock_store.load = AsyncMock(
@@ -83,8 +83,8 @@ class TestAgentLifecycle:
     @pytest.mark.asyncio
     async def test_agent_cleanup_on_error(self):
         """Cleanup runs even if agent.run() raises."""
-        from agentweave.memory.stores.base import MemoryStore
-        from agentweave.errors.exceptions import AgentExecutionError
+        from agentchord.memory.stores.base import MemoryStore
+        from agentchord.errors.exceptions import AgentExecutionError
 
         mock_store = AsyncMock(spec=MemoryStore)
         mock_store.save_many = AsyncMock()
@@ -156,7 +156,7 @@ class TestAgentLifecycle:
     @pytest.mark.asyncio
     async def test_agent_memory_store_save_error_suppressed(self):
         """Memory store save errors don't crash cleanup."""
-        from agentweave.memory.stores.base import MemoryStore
+        from agentchord.memory.stores.base import MemoryStore
 
         mock_store = AsyncMock(spec=MemoryStore)
         mock_store.load = AsyncMock(return_value=[])
@@ -183,7 +183,7 @@ class TestAgentLifecycle:
     @pytest.mark.asyncio
     async def test_agent_close_with_memory(self):
         """agent.close() flushes memory."""
-        from agentweave.memory.stores.base import MemoryStore
+        from agentchord.memory.stores.base import MemoryStore
 
         mock_store = AsyncMock(spec=MemoryStore)
         mock_store.save_many = AsyncMock()
@@ -275,7 +275,7 @@ class TestWorkflowLifecycle:
     @pytest.mark.asyncio
     async def test_workflow_with_agent_memory_stores(self):
         """Workflow cleanup saves memory for all agents."""
-        from agentweave.memory.stores.base import MemoryStore
+        from agentchord.memory.stores.base import MemoryStore
 
         provider = MockLLMProvider()
 
@@ -305,7 +305,7 @@ class TestWorkflowLifecycle:
     @pytest.mark.asyncio
     async def test_workflow_cleanup_on_execution_error(self):
         """Workflow cleanup happens even if execution fails."""
-        from agentweave.memory.stores.base import MemoryStore
+        from agentchord.memory.stores.base import MemoryStore
 
         provider = MockLLMProvider()
         provider.complete = AsyncMock(side_effect=RuntimeError("exec fail"))
@@ -343,7 +343,7 @@ class TestWorkflowLifecycle:
     @pytest.mark.asyncio
     async def test_workflow_agent_load_on_enter(self):
         """Workflow loads agent memory on __aenter__."""
-        from agentweave.memory.stores.base import MemoryStore
+        from agentchord.memory.stores.base import MemoryStore
 
         provider = MockLLMProvider()
 

@@ -32,6 +32,7 @@ from ..dtos.workflow import (
 )
 from ..models.workflow import Workflow as WorkflowModel
 from ..repositories.workflow_repo import WorkflowRepository
+from ..services.execution_service import ExecutionService
 
 router = APIRouter(prefix="/api/workflows", tags=["workflows"])
 
@@ -301,127 +302,22 @@ async def run_workflow(
             detail={"error": {"code": "ACCESS_DENIED", "message": "You do not have access to this workflow"}},
         )
 
-    # Convert DB model to executor's Workflow dataclass
-    from ..core.executor import (
-        Workflow as ExecutorWorkflow,
-        WorkflowNode,
-        WorkflowEdge,
-    )
-
-    nodes_data = json.loads(model.nodes) if isinstance(model.nodes, str) else model.nodes
-    edges_data = json.loads(model.edges) if isinstance(model.edges, str) else model.edges
-
-    executor_workflow = ExecutorWorkflow(
-        id=model.id,
-        name=model.name,
-        nodes=[
-            WorkflowNode(
-                id=n["id"],
-                type=n["type"],
-                data=n.get("data", {}),
-                position=n.get("position"),
-            )
-            for n in (nodes_data or [])
-        ],
-        edges=[
-            WorkflowEdge(
-                id=e["id"],
-                source=e["source"],
-                target=e["target"],
-                source_handle=e.get("sourceHandle"),
-                target_handle=e.get("targetHandle"),
-            )
-            for e in (edges_data or [])
-        ],
-    )
-
-    # Create initial execution record
-    from ..models.execution import Execution as ExecutionModel
-    from ..repositories.execution_repo import ExecutionRepository
-
-    execution_id = str(uuid.uuid4())
-    exec_repo = ExecutionRepository(session)
-
-    now = datetime.now(UTC).replace(tzinfo=None)
-    exec_model = ExecutionModel(
-        id=execution_id,
-        workflow_id=model.id,
-        status="running",
-        mode=request_body.mode,
-        trigger_type="manual",
-        input=request_body.input,
-        started_at=now,
-    )
-    await exec_repo.create(exec_model)
-    await session.commit()
-
-    # Get executor and background executor from app state
+    # Create and dispatch execution via shared service
     executor = request.app.state.executor
     bg_executor = request.app.state.bg_executor
+    exec_service = ExecutionService(executor=executor, execution_repo=None, workflow_repo=None, state_store=None)
 
-    # Define background execution function
-    async def _execute():
-        from ..db.database import get_session_factory
-        session_factory = get_session_factory()
-        async with session_factory() as bg_session:
-            bg_exec_repo = ExecutionRepository(bg_session)
-            try:
-                execution = await executor.run(
-                    workflow=executor_workflow,
-                    input=request_body.input,
-                    mode=request_body.mode,
-                )
-                # Update execution record with results
-                exec_record = await bg_exec_repo.get_by_id(execution_id)
-                if exec_record:
-                    exec_record.status = execution.status.value
-                    exec_record.output = json.dumps(execution.output) if execution.output else None
-                    exec_record.error = execution.error
-                    exec_record.completed_at = execution.completed_at.replace(tzinfo=None) if execution.completed_at else None
-                    if execution.completed_at and exec_record.started_at:
-                        exec_record.duration_ms = int((execution.completed_at - execution.started_at).total_seconds() * 1000)
+    execution_id = await exec_service.create_and_dispatch(
+        session=session,
+        bg_executor=bg_executor,
+        workflow_model=model,
+        input_text=request_body.input,
+        mode=request_body.mode,
+        trigger_type="manual",
+        user_id=user.id,
+    )
 
-                    # Token usage
-                    token_usage = executor._aggregate_token_usage(execution.context)
-                    exec_record.total_tokens = token_usage.get("total_tokens")
-                    exec_record.prompt_tokens = token_usage.get("prompt_tokens")
-                    exec_record.completion_tokens = token_usage.get("completion_tokens")
-                    exec_record.estimated_cost = token_usage.get("estimated_cost")
-                    exec_record.model_used = token_usage.get("model_used")
-
-                    # Node logs
-                    node_logs = []
-                    for ne in execution.node_executions:
-                        node_logs.append({
-                            "node_id": ne.node_id,
-                            "status": ne.status.value if hasattr(ne.status, "value") else ne.status,
-                            "input": ne.input,
-                            "output": ne.output,
-                            "error": ne.error,
-                            "started_at": ne.started_at.isoformat() if ne.started_at else None,
-                            "completed_at": ne.completed_at.isoformat() if ne.completed_at else None,
-                            "duration_ms": ne.duration_ms,
-                            "retry_count": ne.retry_count,
-                        })
-                    exec_record.node_logs = json.dumps(node_logs)
-
-                    await bg_exec_repo.update(exec_record)
-                    await bg_session.commit()
-            except Exception as e:
-                # Update execution record with error
-                exec_record = await bg_exec_repo.get_by_id(execution_id)
-                if exec_record:
-                    exec_record.status = "failed"
-                    exec_record.error = str(e)
-                    exec_record.completed_at = datetime.now(UTC).replace(tzinfo=None)
-                    if exec_record.started_at:
-                        exec_record.duration_ms = int((datetime.now(UTC).replace(tzinfo=None) - exec_record.started_at).total_seconds() * 1000)
-                    await bg_exec_repo.update(exec_record)
-                    await bg_session.commit()
-
-    # Dispatch to background
-    await bg_executor.dispatch(_execute, execution_id)
-
+    now = datetime.now(UTC).replace(tzinfo=None)
     return WorkflowRunResponse(
         id=execution_id,
         workflow_id=model.id,
@@ -475,40 +371,9 @@ async def validate_workflow(
             detail={"error": {"code": "ACCESS_DENIED", "message": "You do not have access to this workflow"}},
         )
 
-    from ..core.executor import (
-        Workflow as ExecutorWorkflow,
-        WorkflowNode,
-        WorkflowEdge,
-        WorkflowValidationError,
-    )
+    from ..core.executor import WorkflowValidationError
 
-    nodes_data = json.loads(model.nodes) if isinstance(model.nodes, str) else model.nodes
-    edges_data = json.loads(model.edges) if isinstance(model.edges, str) else model.edges
-
-    executor_workflow = ExecutorWorkflow(
-        id=model.id,
-        name=model.name,
-        nodes=[
-            WorkflowNode(
-                id=n["id"],
-                type=n["type"],
-                data=n.get("data", {}),
-                position=n.get("position"),
-            )
-            for n in (nodes_data or [])
-        ],
-        edges=[
-            WorkflowEdge(
-                id=e["id"],
-                source=e["source"],
-                target=e["target"],
-                source_handle=e.get("sourceHandle"),
-                target_handle=e.get("targetHandle"),
-            )
-            for e in (edges_data or [])
-        ],
-    )
-
+    executor_workflow = ExecutionService.build_executor_workflow(model)
     executor = request.app.state.executor
 
     try:

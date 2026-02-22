@@ -134,7 +134,7 @@ export function WorkflowList() {
   return (
     <div className="min-h-screen bg-background">
       <header className="h-14 border-b bg-background flex items-center justify-between px-6">
-        <div className="font-bold text-lg text-primary">AgentWeave</div>
+        <div className="font-bold text-lg text-primary">AgentChord</div>
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={handleNew}>
             <Plus className="w-4 h-4 mr-2" />

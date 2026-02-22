@@ -15,14 +15,14 @@ import shutil
 from dataclasses import dataclass, field
 from typing import Any
 
-# AgentWeave resilience imports
+# AgentChord resilience imports
 import sys
 from pathlib import Path
-# Add agentweave package to path (parent of visual-builder)
-_agentweave_root = str(Path(__file__).resolve().parent.parent.parent.parent.parent)
-if _agentweave_root not in sys.path:
-    sys.path.insert(0, _agentweave_root)
-from agentweave.resilience.circuit_breaker import CircuitBreaker, CircuitOpenError
+# Add agentchord package to path (parent of visual-builder)
+_agentchord_root = str(Path(__file__).resolve().parent.parent.parent.parent.parent)
+if _agentchord_root not in sys.path:
+    sys.path.insert(0, _agentchord_root)
+from agentchord.resilience.circuit_breaker import CircuitBreaker, CircuitOpenError
 
 
 # 허용된 MCP 명령어 화이트리스트
@@ -195,6 +195,9 @@ class MCPManager:
     CIRCUIT_FAILURE_THRESHOLD = 3
     CIRCUIT_TIMEOUT = 60.0
 
+    # Connection timeout
+    CONNECTION_TIMEOUT = 30.0
+
     # Execution timeout
     DEFAULT_TOOL_TIMEOUT = 30.0
 
@@ -216,6 +219,82 @@ class MCPManager:
             )
         return self._circuit_breakers[server_id]
 
+    async def _resolve_npx_command(
+        self, config: MCPServerConfig
+    ) -> tuple[str, list[str]]:
+        """Resolve npx package to direct node path to avoid symlink guard issues.
+
+        Some npm MCP packages have an entry guard that compares
+        process.argv[1] with __filename. When npx runs via a symlink in .bin/,
+        path.resolve(argv[1]) differs from the real file path, so the guard
+        fails and the server never starts.
+
+        This resolves the symlink and returns ("node", [real_path]) instead.
+        """
+        import os
+
+        if config.command != "npx":
+            return config.command, list(config.args)
+
+        # Find package name from args: npx -y <package>[@version]
+        args = list(config.args)
+        pkg_with_version = None
+        for i, arg in enumerate(args):
+            if arg == "-y" and i + 1 < len(args):
+                pkg_with_version = args[i + 1]
+                break
+
+        if not pkg_with_version:
+            return config.command, args
+
+        # Extract bin name (package name without version/scope)
+        if pkg_with_version.startswith("@"):
+            # Scoped package: @scope/name[@version]
+            parts = pkg_with_version.split("/", 1)
+            bin_name = parts[1].split("@")[0] if len(parts) > 1 else pkg_with_version
+        else:
+            bin_name = pkg_with_version.split("@")[0]
+
+        # Search npm npx cache for the resolved binary
+        npx_cache = os.path.expanduser("~/.npm/_npx")
+        if not os.path.isdir(npx_cache):
+            return config.command, args
+
+        def _find_real_path() -> str | None:
+            for cache_hash in os.listdir(npx_cache):
+                bin_link = os.path.join(
+                    npx_cache, cache_hash, "node_modules", ".bin", bin_name
+                )
+                if os.path.islink(bin_link) or os.path.isfile(bin_link):
+                    real_path = os.path.realpath(bin_link)
+                    if os.path.isfile(real_path):
+                        return real_path
+            return None
+
+        real_path = _find_real_path()
+        if real_path:
+            return "node", [real_path]
+
+        # Not cached yet - install first
+        try:
+            merged_env = {**os.environ, **(config.env or {})}
+            proc = await asyncio.create_subprocess_exec(
+                "npx", "-y", pkg_with_version, "--version",
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+                env=merged_env,
+            )
+            await asyncio.wait_for(proc.wait(), timeout=60)
+        except Exception:
+            pass
+
+        real_path = _find_real_path()
+        if real_path:
+            return "node", [real_path]
+
+        # Fallback to original npx command
+        return config.command, args
+
     async def connect(self, config: MCPServerConfig) -> None:
         """Connect to MCP server.
 
@@ -234,10 +313,19 @@ class MCPManager:
                 "MCP client not installed. Run: pip install mcp"
             )
 
+        # Merge with parent PATH so child process can find binaries
+        import os
+        merged_env = None
+        if config.env:
+            merged_env = {**os.environ, **config.env}
+
+        # Resolve npx symlinks to avoid entry guard issues in some packages
+        resolved_command, resolved_args = await self._resolve_npx_command(config)
+
         server_params = StdioServerParameters(
-            command=config.command,
-            args=config.args,
-            env=config.env,
+            command=resolved_command,
+            args=resolved_args,
+            env=merged_env,
         )
 
         try:
@@ -253,10 +341,16 @@ class MCPManager:
                 session = await session_cm.__aenter__()
 
                 try:
-                    await session.initialize()
+                    await asyncio.wait_for(
+                        session.initialize(),
+                        timeout=self.CONNECTION_TIMEOUT
+                    )
 
                     # Step 3: Get tool list
-                    tools_result = await session.list_tools()
+                    tools_result = await asyncio.wait_for(
+                        session.list_tools(),
+                        timeout=self.CONNECTION_TIMEOUT
+                    )
                     self._tools[config.id] = [
                         MCPTool(
                             server_id=config.id,
@@ -280,6 +374,14 @@ class MCPManager:
                 await client_cm.__aexit__(None, None, None)
                 raise
 
+        except asyncio.TimeoutError:
+            breaker = self._get_or_create_breaker(config.id)
+            error = MCPManagerError(
+                f"Connection to {config.name} timed out after {self.CONNECTION_TIMEOUT}s. "
+                "This may happen with slow-starting MCP servers (e.g., npx downloading packages)."
+            )
+            breaker.record_failure(error)
+            raise error
         except Exception as e:
             breaker = self._get_or_create_breaker(config.id)
             breaker.record_failure(e)
@@ -323,6 +425,16 @@ class MCPManager:
 
         try:
             result = await breaker.execute(_execute)
+            # Check if MCP tool returned an error
+            if result.isError:
+                # Extract error message from content
+                error_msg = ""
+                if result.content:
+                    error_msg = "\n".join(
+                        item.text if hasattr(item, "text") else str(item)
+                        for item in result.content
+                    )
+                raise MCPManagerError(f"MCP tool error: {error_msg}")
             return result.content
         except CircuitOpenError:
             raise

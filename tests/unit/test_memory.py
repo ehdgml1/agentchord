@@ -7,10 +7,10 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from agentweave.memory.base import BaseMemory, MemoryEntry
-from agentweave.memory.conversation import ConversationMemory
-from agentweave.memory.semantic import SemanticMemory, _cosine_similarity
-from agentweave.memory.working import WorkingMemory, WorkingItem
+from agentchord.memory.base import BaseMemory, MemoryEntry
+from agentchord.memory.conversation import ConversationMemory
+from agentchord.memory.semantic import SemanticMemory, _cosine_similarity
+from agentchord.memory.working import WorkingMemory, WorkingItem
 
 
 class TestMemoryEntry:

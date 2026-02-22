@@ -44,6 +44,32 @@ export type ModelId =
   | 'gemini-2.5-pro';
 
 /**
+ * Configuration for a single output field in structured output
+ */
+export interface OutputFieldConfig {
+  /** Field name (e.g., "score", "feedback") */
+  name: string;
+  /** Field data type */
+  type: 'text' | 'number' | 'boolean' | 'list';
+  /** Optional description for LLM guidance */
+  description?: string;
+}
+
+/**
+ * Metadata for an uploaded document file
+ */
+export interface DocumentFileInfo {
+  /** Unique file identifier */
+  id: string;
+  /** Original filename */
+  filename: string;
+  /** File size in bytes */
+  size: number;
+  /** MIME type */
+  mimeType: string;
+}
+
+/**
  * Configuration data for Agent blocks
  */
 export interface AgentBlockData extends Record<string, unknown> {
@@ -61,6 +87,10 @@ export interface AgentBlockData extends Record<string, unknown> {
   systemPrompt?: string;
   /** Optional list of MCP tool IDs available to this agent */
   mcpTools?: string[];
+  /** Optional structured output field definitions */
+  outputFields?: OutputFieldConfig[];
+  /** Optional input template with {{nodeId.field}} references */
+  inputTemplate?: string;
 }
 
 /**
@@ -139,6 +169,8 @@ export interface AgentMemberConfig {
   capabilities: string[];
   /** Temperature parameter (0-1) for model randomness */
   temperature: number;
+  /** Optional list of MCP tool IDs available to this member */
+  mcpTools?: string[];
 }
 
 /**
@@ -155,6 +187,12 @@ export interface MultiAgentBlockData extends Record<string, unknown> {
   maxRounds: number;
   /** Optional cost budget limit */
   costBudget: number;
+  /** ID (name) of the member designated as coordinator. Empty = auto-select first. */
+  coordinatorId?: string;
+  /** Enable peer-to-peer consult between worker agents */
+  enableConsult?: boolean;
+  /** Maximum depth of consult chains (default 1) */
+  maxConsultDepth?: number;
 }
 
 /**
@@ -181,6 +219,16 @@ export interface RAGBlockData extends Record<string, unknown> {
   temperature: number;
   /** Maximum tokens the model can generate */
   maxTokens: number;
+  /** Optional embedding provider override (undefined = use global default) */
+  embeddingProvider?: 'openai' | 'gemini' | 'ollama';
+  /** Optional embedding model override */
+  embeddingModel?: string;
+  /** Optional embedding dimensions override */
+  embeddingDimensions?: number;
+  /** Uploaded document file references */
+  documentFiles?: DocumentFileInfo[];
+  /** Optional input template with {{nodeId.field}} references */
+  inputTemplate?: string;
 }
 
 /**

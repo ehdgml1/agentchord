@@ -2,15 +2,18 @@ import { memo } from 'react';
 import { type NodeProps } from '@xyflow/react';
 import { Wrench } from 'lucide-react';
 import { BaseNode } from './BaseNode';
+import { useNodeExecutionStatus } from '../../hooks/useNodeExecutionStatus';
 import type { MCPToolBlockData } from '../../types/blocks';
 
 type MCPToolNodeProps = NodeProps & {
   data: MCPToolBlockData & { label?: string };
 };
 
-export const MCPToolNode = memo(function MCPToolNode({ data, selected }: MCPToolNodeProps) {
+export const MCPToolNode = memo(function MCPToolNode({ id, data, selected }: MCPToolNodeProps) {
+  const executionStatus = useNodeExecutionStatus(id);
+
   return (
-    <BaseNode color="#8B5CF6" selected={selected}>
+    <BaseNode color="#8B5CF6" selected={selected} executionStatus={executionStatus}>
       <div className="p-3">
         <div className="flex items-center gap-2 mb-2">
           <div className="p-1.5 rounded bg-violet-100">

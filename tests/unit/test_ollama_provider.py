@@ -8,10 +8,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from agentweave.core.types import Message, MessageRole, ToolCall, Usage
-from agentweave.errors.exceptions import APIError
-from agentweave.errors.exceptions import TimeoutError as AgentweaveTimeoutError
-from agentweave.llm.ollama import OllamaProvider
+from agentchord.core.types import Message, MessageRole, ToolCall, Usage
+from agentchord.errors.exceptions import APIError
+from agentchord.errors.exceptions import TimeoutError as AgentweaveTimeoutError
+from agentchord.llm.ollama import OllamaProvider
 
 
 class TestOllamaProviderInit:
@@ -83,7 +83,7 @@ class TestOllamaComplete:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("agentweave.llm.ollama.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.ollama.httpx.AsyncClient", return_value=mock_client):
             provider = OllamaProvider(model="ollama/llama3.2")
             messages = [Message(role=MessageRole.USER, content="Hello")]
 
@@ -134,7 +134,7 @@ class TestOllamaComplete:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("agentweave.llm.ollama.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.ollama.httpx.AsyncClient", return_value=mock_client):
             provider = OllamaProvider(model="ollama/llama3.2")
             messages = [Message(role=MessageRole.USER, content="What's the weather?")]
 
@@ -180,7 +180,7 @@ class TestOllamaComplete:
             }
         ]
 
-        with patch("agentweave.llm.ollama.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.ollama.httpx.AsyncClient", return_value=mock_client):
             provider = OllamaProvider(model="ollama/llama3.2")
             messages = [Message(role=MessageRole.USER, content="Check weather")]
 
@@ -205,7 +205,7 @@ class TestOllamaErrors:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("agentweave.llm.ollama.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.ollama.httpx.AsyncClient", return_value=mock_client):
             provider = OllamaProvider(model="ollama/llama3.2")
             messages = [Message(role=MessageRole.USER, content="Hello")]
 
@@ -227,7 +227,7 @@ class TestOllamaErrors:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("agentweave.llm.ollama.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.ollama.httpx.AsyncClient", return_value=mock_client):
             provider = OllamaProvider(model="ollama/llama3.2", timeout=30.0)
             messages = [Message(role=MessageRole.USER, content="Hello")]
 
@@ -263,7 +263,7 @@ class TestOllamaErrors:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("agentweave.llm.ollama.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.ollama.httpx.AsyncClient", return_value=mock_client):
             provider = OllamaProvider(model="ollama/llama3.2")
             messages = [Message(role=MessageRole.USER, content="Hello")]
 

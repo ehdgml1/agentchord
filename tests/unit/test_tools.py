@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from agentweave.tools.base import Tool, ToolParameter, ToolResult
-from agentweave.tools.decorator import tool, _python_type_to_json_type
-from agentweave.tools.executor import ToolExecutor
+from agentchord.tools.base import Tool, ToolParameter, ToolResult
+from agentchord.tools.decorator import tool, _python_type_to_json_type
+from agentchord.tools.executor import ToolExecutor
 
 
 class TestToolParameter:

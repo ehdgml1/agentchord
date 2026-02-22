@@ -6,14 +6,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agentweave.core.agent import Agent
-from agentweave.core.types import LLMResponse, Usage, StreamChunk
-from agentweave.memory.conversation import ConversationMemory
-from agentweave.memory.base import MemoryEntry
-from agentweave.tracking.cost import CostTracker
-from agentweave.tracking.callbacks import CallbackManager, CallbackEvent, CallbackContext
-from agentweave.tools.decorator import tool
-from agentweave.llm.base import BaseLLMProvider
+from agentchord.core.agent import Agent
+from agentchord.core.types import LLMResponse, Usage, StreamChunk
+from agentchord.memory.conversation import ConversationMemory
+from agentchord.memory.base import MemoryEntry
+from agentchord.tracking.cost import CostTracker
+from agentchord.tracking.callbacks import CallbackManager, CallbackEvent, CallbackContext
+from agentchord.tools.decorator import tool
+from agentchord.llm.base import BaseLLMProvider
 
 
 class MockLLMProvider(BaseLLMProvider):

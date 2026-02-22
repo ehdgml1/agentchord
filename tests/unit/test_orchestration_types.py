@@ -6,7 +6,7 @@ from datetime import datetime
 
 import pytest
 
-from agentweave.orchestration.types import (
+from agentchord.orchestration.types import (
     AgentMessage,
     AgentOutput,
     MessageType,
@@ -25,14 +25,12 @@ class TestMessageType:
         """MessageType should have all expected values."""
         assert MessageType.TASK == "task"
         assert MessageType.RESULT == "result"
-        assert MessageType.QUERY == "query"
         assert MessageType.RESPONSE == "response"
         assert MessageType.BROADCAST == "broadcast"
-        assert MessageType.SYSTEM == "system"
 
     def test_message_type_count(self) -> None:
-        """MessageType should have exactly 6 values."""
-        assert len(MessageType) == 6
+        """MessageType should have exactly 4 values."""
+        assert len(MessageType) == 4
 
 
 class TestTeamRole:
@@ -122,7 +120,7 @@ class TestAgentMessage:
         msg = AgentMessage(
             sender="agent-1",
             recipient="agent-2",
-            message_type=MessageType.QUERY,
+            message_type=MessageType.RESPONSE,
             content="What is the status?",
         )
 
@@ -130,7 +128,7 @@ class TestAgentMessage:
 
         assert data["sender"] == "agent-1"
         assert data["recipient"] == "agent-2"
-        assert data["message_type"] == "query"
+        assert data["message_type"] == "response"
         assert data["content"] == "What is the status?"
         assert "id" in data
         assert "timestamp" in data
@@ -497,3 +495,18 @@ class TestTeamResult:
         assert restored.strategy == original.strategy
         assert len(restored.agent_outputs) == 1
         assert len(restored.messages) == 1
+
+
+def test_sequential_alias_deprecation_warning() -> None:
+    """sequential strategy emits deprecation warning."""
+    import warnings
+
+    from agentchord.orchestration.team import AgentTeam
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        team = AgentTeam.__new__(AgentTeam)
+        team._resolve_strategy("sequential")
+        assert len(w) == 1
+        assert issubclass(w[0].category, DeprecationWarning)
+        assert "sequential" in str(w[0].message)

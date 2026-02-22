@@ -154,9 +154,9 @@ All tests should pass with:
 ## Troubleshooting
 
 ### Import Errors
-Ensure agentweave is installed:
+Ensure agentchord is installed:
 ```bash
-cd /Users/ud/Documents/work/agentweave
+cd /Users/ud/Documents/work/agentchord
 pip install -e .
 ```
 

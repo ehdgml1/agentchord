@@ -12,10 +12,10 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 # Mock provider for demonstration (replace with real provider)
-from agentweave import Agent
-from agentweave.core.structured import OutputSchema
-from agentweave.core.types import LLMResponse, Message, Usage
-from agentweave.llm.base import BaseLLMProvider
+from agentchord import Agent
+from agentchord.core.structured import OutputSchema
+from agentchord.core.types import LLMResponse, Message, Usage
+from agentchord.llm.base import BaseLLMProvider
 
 
 class SentimentAnalysis(BaseModel):
@@ -178,7 +178,7 @@ async def example_with_real_provider() -> None:
     print("=== Example 3: Using with Real Provider (OpenAI) ===\n")
     print("To use with a real provider, replace MockStructuredProvider with:")
     print()
-    print("  from agentweave.llm.openai import OpenAIProvider")
+    print("  from agentchord.llm.openai import OpenAIProvider")
     print()
     print("  agent = Agent(")
     print('      name="analyzer",')

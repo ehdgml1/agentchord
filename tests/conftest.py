@@ -1,4 +1,4 @@
-"""Pytest configuration and fixtures for AgentWeave tests."""
+"""Pytest configuration and fixtures for AgentChord tests."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agentweave.core.types import LLMResponse, Message, MessageRole, StreamChunk, ToolCall, Usage
-from agentweave.llm.base import BaseLLMProvider
+from agentchord.core.types import LLMResponse, Message, MessageRole, StreamChunk, ToolCall, Usage
+from agentchord.llm.base import BaseLLMProvider
 
 
 class MockLLMProvider(BaseLLMProvider):
@@ -229,8 +229,8 @@ def sample_llm_response(sample_usage: Usage) -> LLMResponse:
 # ---------------------------------------------------------------------------
 # RAG fixtures
 # ---------------------------------------------------------------------------
-from agentweave.rag.embeddings.base import EmbeddingProvider
-from agentweave.rag.types import Chunk, Document
+from agentchord.rag.embeddings.base import EmbeddingProvider
+from agentchord.rag.types import Chunk, Document
 
 
 class MockEmbeddingProvider(EmbeddingProvider):
@@ -283,7 +283,7 @@ def sample_documents() -> list[Document]:
     return [
         Document(
             id="doc1",
-            content="AgentWeave is a protocol-first multi-agent framework. "
+            content="AgentChord is a protocol-first multi-agent framework. "
                     "It supports MCP and A2A protocols for agent communication.",
             source="docs/readme.md",
             metadata={"type": "readme"},
@@ -311,7 +311,7 @@ def sample_chunks() -> list[Chunk]:
     return [
         Chunk(
             id="chunk1",
-            content="AgentWeave is a multi-agent framework",
+            content="AgentChord is a multi-agent framework",
             document_id="doc1",
             embedding=[0.1, 0.2, 0.3, 0.4],
             metadata={"source": "readme"},

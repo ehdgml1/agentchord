@@ -6,15 +6,15 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from agentweave.protocols.mcp.adapter import (
+from agentchord.protocols.mcp.adapter import (
     _convert_parameters,
     mcp_tool_to_tool,
     mcp_tools_to_tools,
     register_mcp_tools,
 )
-from agentweave.protocols.mcp.types import MCPTool, MCPToolResult
-from agentweave.tools.base import Tool, ToolParameter
-from agentweave.tools.executor import ToolExecutor
+from agentchord.protocols.mcp.types import MCPTool, MCPToolResult
+from agentchord.tools.base import Tool, ToolParameter
+from agentchord.tools.executor import ToolExecutor
 
 
 class TestConvertParameters:

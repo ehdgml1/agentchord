@@ -2,8 +2,8 @@
 import pytest
 from pathlib import Path
 
-from agentweave.rag.loaders.text import TextLoader
-from agentweave.rag.loaders.directory import DirectoryLoader
+from agentchord.rag.loaders.text import TextLoader
+from agentchord.rag.loaders.directory import DirectoryLoader
 
 
 class TestTextLoader:

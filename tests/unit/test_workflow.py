@@ -7,17 +7,17 @@ from typing import Any
 
 import pytest
 
-from agentweave import Agent
-from agentweave.core.executor import MergeStrategy, ParallelExecutor, SingleAgentExecutor
-from agentweave.core.state import WorkflowStatus
-from agentweave.core.types import LLMResponse, Message, StreamChunk, Usage
-from agentweave.core.workflow import FlowParser, Workflow
-from agentweave.errors.exceptions import (
+from agentchord import Agent
+from agentchord.core.executor import MergeStrategy, ParallelExecutor, SingleAgentExecutor
+from agentchord.core.state import WorkflowStatus
+from agentchord.core.types import LLMResponse, Message, StreamChunk, Usage
+from agentchord.core.workflow import FlowParser, Workflow
+from agentchord.errors.exceptions import (
     AgentNotFoundInFlowError,
     EmptyWorkflowError,
     InvalidFlowError,
 )
-from agentweave.llm.base import BaseLLMProvider
+from agentchord.llm.base import BaseLLMProvider
 
 
 class SequenceProvider(BaseLLMProvider):

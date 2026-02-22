@@ -212,7 +212,7 @@ describe('ExecutionPanel', () => {
     const user = userEvent.setup();
     render(<ExecutionPanel />);
 
-    const refreshButton = screen.getAllByRole('button')[0];
+    const refreshButton = screen.getAllByRole('button')[1];
     await user.click(refreshButton);
 
     await waitFor(() => {

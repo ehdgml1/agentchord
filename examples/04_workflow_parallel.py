@@ -13,9 +13,9 @@
 
 import asyncio
 
-from agentweave import Agent
-from agentweave.core.executor import MergeStrategy
-from agentweave.core.workflow import Workflow
+from agentchord import Agent
+from agentchord.core.executor import MergeStrategy
+from agentchord.core.workflow import Workflow
 
 
 async def main() -> None:
@@ -71,7 +71,7 @@ async def main() -> None:
     )
 
     print("=" * 60)
-    print("AgentWeave Parallel Workflow")
+    print("AgentChord Parallel Workflow")
     print("=" * 60)
     print("Flow: [tech, business, user] -> synthesizer")
     print("=" * 60)

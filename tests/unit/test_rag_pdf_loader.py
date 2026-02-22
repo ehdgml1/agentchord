@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agentweave.rag.loaders.pdf import PDFLoader
+from agentchord.rag.loaders.pdf import PDFLoader
 
 
 def _make_mock_page(text: str) -> MagicMock:

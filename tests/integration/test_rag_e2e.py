@@ -7,15 +7,15 @@ from __future__ import annotations
 
 import pytest
 
-from agentweave.core.agent import Agent
-from agentweave.rag.chunking.recursive import RecursiveCharacterChunker
-from agentweave.rag.evaluation.evaluator import RAGEvaluator
-from agentweave.rag.pipeline import RAGPipeline
-from agentweave.rag.search.bm25 import BM25Search
-from agentweave.rag.search.hybrid import HybridSearch
-from agentweave.rag.tools import create_rag_tools
-from agentweave.rag.types import Chunk, Document
-from agentweave.rag.vectorstore.in_memory import InMemoryVectorStore
+from agentchord.core.agent import Agent
+from agentchord.rag.chunking.recursive import RecursiveCharacterChunker
+from agentchord.rag.evaluation.evaluator import RAGEvaluator
+from agentchord.rag.pipeline import RAGPipeline
+from agentchord.rag.search.bm25 import BM25Search
+from agentchord.rag.search.hybrid import HybridSearch
+from agentchord.rag.tools import create_rag_tools
+from agentchord.rag.types import Chunk, Document
+from agentchord.rag.vectorstore.in_memory import InMemoryVectorStore
 from tests.conftest import MockEmbeddingProvider, MockLLMProvider
 
 
@@ -26,7 +26,7 @@ def sample_corpus() -> list[Document]:
         Document(
             id="doc1",
             content=(
-                "AgentWeave is a protocol-first multi-agent framework. "
+                "AgentChord is a protocol-first multi-agent framework. "
                 "It provides comprehensive support for MCP and A2A protocols, "
                 "enabling seamless agent communication across different systems. "
                 "The framework is built with Python and uses asyncio for concurrent operations."
@@ -37,7 +37,7 @@ def sample_corpus() -> list[Document]:
         Document(
             id="doc2",
             content=(
-                "The RAG module in AgentWeave provides retrieval-augmented generation capabilities. "
+                "The RAG module in AgentChord provides retrieval-augmented generation capabilities. "
                 "It includes vector search using embeddings, BM25 keyword search, and hybrid search "
                 "that combines both approaches. The module supports custom chunking strategies "
                 "and reranking for improved retrieval quality."
@@ -58,7 +58,7 @@ def sample_corpus() -> list[Document]:
         Document(
             id="doc4",
             content=(
-                "Error handling in AgentWeave uses structured exceptions and context managers. "
+                "Error handling in AgentChord uses structured exceptions and context managers. "
                 "The framework provides automatic retry mechanisms with exponential backoff "
                 "and circuit breaker patterns for resilient agent operations. "
                 "All errors are logged with structured metadata for debugging."
@@ -74,7 +74,7 @@ def mock_rag_llm() -> MockLLMProvider:
     """Mock LLM provider with RAG-specific responses."""
     return MockLLMProvider(
         response_content=(
-            "AgentWeave is a protocol-first multi-agent framework that supports MCP and A2A protocols. "
+            "AgentChord is a protocol-first multi-agent framework that supports MCP and A2A protocols. "
             "It provides RAG capabilities including vector search, BM25, and hybrid search."
         )
     )
@@ -99,12 +99,12 @@ class TestRAGPipelineE2E:
         assert pipeline.ingested_count == count
 
         # Query pipeline
-        response = await pipeline.query("What is AgentWeave?")
+        response = await pipeline.query("What is AgentChord?")
 
         # Verify response structure
-        assert response.query == "What is AgentWeave?"
+        assert response.query == "What is AgentChord?"
         assert len(response.answer) > 0
-        assert response.retrieval.query == "What is AgentWeave?"
+        assert response.retrieval.query == "What is AgentChord?"
         assert len(response.retrieval.results) > 0
         assert response.usage["total_tokens"] > 0
         assert len(response.source_documents) > 0
@@ -159,7 +159,7 @@ class TestRAGPipelineE2E:
         )
 
         await pipeline.ingest_documents(sample_corpus)
-        retrieval = await pipeline.retrieve("AgentWeave framework")
+        retrieval = await pipeline.retrieve("AgentChord framework")
 
         # Should still retrieve results using vector search
         assert len(retrieval.results) > 0
@@ -251,11 +251,11 @@ class TestHybridSearchE2E:
         await hybrid.add(all_chunks)
 
         # Search with both methods - returns RetrievalResult
-        retrieval = await hybrid.search("AgentWeave protocol framework", limit=5)
+        retrieval = await hybrid.search("AgentChord protocol framework", limit=5)
 
         # Should get fused results
         assert len(retrieval.results) > 0
-        assert retrieval.query == "AgentWeave protocol framework"
+        assert retrieval.query == "AgentChord protocol framework"
         # Results should have sources from hybrid search
         sources = {r.source for r in retrieval.results}
         assert "hybrid" in sources
@@ -305,7 +305,7 @@ class TestHybridSearchE2E:
         # Search with metadata filter (parameter is 'filter' not 'metadata_filter')
         # Note: Filter only applies to vector search, not BM25
         retrieval = await hybrid.search(
-            "AgentWeave", limit=10, filter={"category": "framework"}
+            "AgentChord", limit=10, filter={"category": "framework"}
         )
 
         # Should get results - at least some from vector search with filter
@@ -359,7 +359,7 @@ class TestAgenticRAGE2E:
         search_tool = next(t for t in tools if t.name == "rag_search")
 
         # Call tool
-        result = await search_tool.func(query="AgentWeave framework", limit=2)
+        result = await search_tool.func(query="AgentChord framework", limit=2)
 
         # Should return formatted string with sources
         assert isinstance(result, str)
@@ -384,13 +384,13 @@ class TestAgenticRAGE2E:
         query_tool = next(t for t in tools if t.name == "rag_query")
 
         # Call tool
-        result = await query_tool.func(question="What is AgentWeave?")
+        result = await query_tool.func(question="What is AgentChord?")
 
         # Should return synthesized answer
         assert isinstance(result, str)
         assert len(result) > 0
         # Answer should come from mock LLM
-        assert "AgentWeave" in result
+        assert "AgentChord" in result
 
 
 @pytest.mark.integration
@@ -404,10 +404,10 @@ class TestRAGEvaluationE2E:
         )
 
         result = await evaluator.evaluate(
-            query="What is AgentWeave?",
-            answer="AgentWeave is a multi-agent framework supporting MCP and A2A protocols.",
+            query="What is AgentChord?",
+            answer="AgentChord is a multi-agent framework supporting MCP and A2A protocols.",
             contexts=[
-                "AgentWeave is a protocol-first multi-agent framework.",
+                "AgentChord is a protocol-first multi-agent framework.",
                 "It supports MCP and A2A protocols for agent communication.",
             ],
         )
@@ -428,12 +428,12 @@ class TestRAGEvaluationE2E:
     ):
         """Test evaluate_response() extracts fields from RAGResponse correctly."""
         pipeline = RAGPipeline(
-            llm=MockLLMProvider(response_content="Test answer about AgentWeave"),
+            llm=MockLLMProvider(response_content="Test answer about AgentChord"),
             embedding_provider=MockEmbeddingProvider(dimensions=64),
         )
 
         await pipeline.ingest_documents(sample_corpus)
-        response = await pipeline.query("What is AgentWeave?", limit=2)
+        response = await pipeline.query("What is AgentChord?", limit=2)
 
         # Evaluate the response
         evaluator = RAGEvaluator(
@@ -456,7 +456,7 @@ class TestRAGEvaluationE2E:
         """Test end-to-end: Agent uses RAG tools, then evaluate response."""
         # Create pipeline and tools
         pipeline = RAGPipeline(
-            llm=MockLLMProvider(response_content="AgentWeave is a framework for multi-agent systems."),
+            llm=MockLLMProvider(response_content="AgentChord is a framework for multi-agent systems."),
             embedding_provider=MockEmbeddingProvider(dimensions=64),
         )
 
@@ -468,7 +468,7 @@ class TestRAGEvaluationE2E:
             name="rag-assistant",
             role="RAG-powered assistant",
             llm_provider=MockLLMProvider(
-                response_content="Based on the knowledge base, AgentWeave is a multi-agent framework."
+                response_content="Based on the knowledge base, AgentChord is a multi-agent framework."
             ),
             tools=tools,
         )
@@ -477,11 +477,11 @@ class TestRAGEvaluationE2E:
         assert len(agent.tools) == 2
 
         # Response from agent - Agent.run() returns AgentResult
-        result = await agent.run("What is AgentWeave?")
-        assert "AgentWeave" in result.output
+        result = await agent.run("What is AgentChord?")
+        assert "AgentChord" in result.output
 
         # Could evaluate RAG response quality if we had one
-        rag_response = await pipeline.query("What is AgentWeave?")
+        rag_response = await pipeline.query("What is AgentChord?")
         evaluator = RAGEvaluator(llm=MockLLMProvider(response_content="yes\nyes\nyes"))
         eval_result = await evaluator.evaluate_response(rag_response)
 

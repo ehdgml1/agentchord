@@ -145,7 +145,7 @@ export const Header = memo(function Header() {
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/')}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
-        <div className="font-bold text-lg text-primary">AgentWeave</div>
+        <div className="font-bold text-lg text-primary">AgentChord</div>
         <div className="h-6 w-px bg-border" />
         {isEditing ? (
           <Input

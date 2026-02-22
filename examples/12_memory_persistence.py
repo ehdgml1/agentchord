@@ -8,8 +8,8 @@ import asyncio
 from pathlib import Path
 import tempfile
 
-from agentweave.memory import ConversationMemory, MemoryEntry
-from agentweave.memory.stores import JSONFileStore, SQLiteStore
+from agentchord.memory import ConversationMemory, MemoryEntry
+from agentchord.memory.stores import JSONFileStore, SQLiteStore
 
 
 async def example_json_store():

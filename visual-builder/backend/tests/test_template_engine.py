@@ -133,6 +133,18 @@ async def test_input_template_override(executor):
 @pytest.mark.asyncio
 async def test_mcp_params_template_resolution(executor):
     """Test MCP tool parameters with templates get resolved."""
+    from unittest.mock import AsyncMock
+
+    # Capture what arguments the mock receives
+    captured_args = {}
+
+    async def mock_execute_tool(server_id, tool_name, arguments):
+        nonlocal captured_args
+        captured_args = arguments
+        return {"result": "success"}
+
+    executor.mcp_manager.execute_tool = mock_execute_tool
+
     node = WorkflowNode(
         id="tool1",
         type="mcp_tool",
@@ -153,12 +165,12 @@ async def test_mcp_params_template_resolution(executor):
     }
 
     # Call _run_mcp_tool
-    result = await executor._run_mcp_tool(node, context)
+    await executor._run_mcp_tool(node, context)
 
-    # The mock MCP manager should receive resolved parameters
-    assert result["arguments"]["url"] == "https://api.example.com/v1"
-    assert result["arguments"]["output_path"] == "/tmp/output.json"
-    assert result["arguments"]["static_value"] == "no template here"
+    # Verify the mock MCP manager received resolved parameters
+    assert captured_args["url"] == "https://api.example.com/v1"
+    assert captured_args["output_path"] == "/tmp/output.json"
+    assert captured_args["static_value"] == "no template here"
 
 
 @pytest.mark.asyncio

@@ -49,3 +49,6 @@ __pycache__/
 # Keys and certificates
 *.pem
 *.key
+
+# Uploaded files
+uploads/

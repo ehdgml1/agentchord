@@ -2,15 +2,18 @@ import { memo } from 'react';
 import { type NodeProps } from '@xyflow/react';
 import { RefreshCw } from 'lucide-react';
 import { BaseNode } from './BaseNode';
+import { useNodeExecutionStatus } from '../../hooks/useNodeExecutionStatus';
 import type { FeedbackLoopBlockData } from '../../types/blocks';
 
 type FeedbackLoopNodeProps = NodeProps & {
   data: FeedbackLoopBlockData & { label?: string };
 };
 
-export const FeedbackLoopNode = memo(function FeedbackLoopNode({ data, selected }: FeedbackLoopNodeProps) {
+export const FeedbackLoopNode = memo(function FeedbackLoopNode({ id, data, selected }: FeedbackLoopNodeProps) {
+  const executionStatus = useNodeExecutionStatus(id);
+
   return (
-    <BaseNode color="#EC4899" selected={selected}>
+    <BaseNode color="#EC4899" selected={selected} executionStatus={executionStatus}>
       <div className="p-3">
         <div className="flex items-center gap-2 mb-2">
           <div className="p-1.5 rounded bg-pink-100">

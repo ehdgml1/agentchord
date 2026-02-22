@@ -1,8 +1,8 @@
 """Tests for document chunking strategies."""
 import pytest
-from agentweave.rag.chunking.recursive import RecursiveCharacterChunker
-from agentweave.rag.chunking.parent_child import ParentChildChunker
-from agentweave.rag.types import Document
+from agentchord.rag.chunking.recursive import RecursiveCharacterChunker
+from agentchord.rag.chunking.parent_child import ParentChildChunker
+from agentchord.rag.types import Document
 
 
 class TestRecursiveCharacterChunker:

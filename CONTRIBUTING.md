@@ -1,6 +1,6 @@
-# Contributing to AgentWeave
+# Contributing to AgentChord
 
-Thank you for your interest in contributing to AgentWeave! This guide will help you get started.
+Thank you for your interest in contributing to AgentChord! This guide will help you get started.
 
 ## Development Setup
 
@@ -13,8 +13,8 @@ Thank you for your interest in contributing to AgentWeave! This guide will help 
 
 ```bash
 # Clone the repository
-git clone https://github.com/agentweave/agentweave.git
-cd agentweave
+git clone https://github.com/agentchord/agentchord.git
+cd agentchord
 
 # Install dependencies (with all optional extras)
 poetry install --extras all
@@ -78,7 +78,7 @@ poetry run pre-commit run --all-files
 ## Project Structure
 
 ```
-agentweave/
+agentchord/
 ├── core/           # Agent, Workflow, Executor, types
 ├── errors/         # Exception hierarchy
 ├── llm/            # LLM providers (OpenAI, Anthropic, Ollama, Gemini)
@@ -121,7 +121,7 @@ test: add lifecycle management tests
 
 ## Adding a New LLM Provider
 
-1. Create `agentweave/llm/your_provider.py` extending `BaseLLMProvider`
+1. Create `agentchord/llm/your_provider.py` extending `BaseLLMProvider`
 2. Implement `complete()` and `stream()` methods
 3. Register prefix in `ProviderRegistry`
 4. Add tests in `tests/unit/test_your_provider.py`
@@ -130,8 +130,8 @@ test: add lifecycle management tests
 
 ## Reporting Issues
 
-- Use [GitHub Issues](https://github.com/agentweave/agentweave/issues)
-- Include Python version, OS, and AgentWeave version
+- Use [GitHub Issues](https://github.com/agentchord/agentchord/issues)
+- Include Python version, OS, and AgentChord version
 - Provide a minimal reproducible example when possible
 
 ## License

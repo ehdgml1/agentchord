@@ -2,17 +2,19 @@ import { memo } from 'react';
 import { type NodeProps } from '@xyflow/react';
 import { BookOpen } from 'lucide-react';
 import { BaseNode } from './BaseNode';
+import { useNodeExecutionStatus } from '../../hooks/useNodeExecutionStatus';
 import type { RAGBlockData } from '../../types/blocks';
 
 type RAGNodeProps = NodeProps & {
   data: RAGBlockData & { label?: string };
 };
 
-export const RAGNode = memo(function RAGNode({ data, selected }: RAGNodeProps) {
+export const RAGNode = memo(function RAGNode({ id, data, selected }: RAGNodeProps) {
   const docCount = data.documents?.length || 0;
+  const executionStatus = useNodeExecutionStatus(id);
 
   return (
-    <BaseNode color="#8B5CF6" selected={selected}>
+    <BaseNode color="#8B5CF6" selected={selected} executionStatus={executionStatus}>
       <div className="p-3" aria-label={`RAG node: ${data.name || 'Unnamed RAG'}`}>
         <div className="flex items-center gap-2 mb-2">
           <div className="p-1.5 rounded bg-violet-100">

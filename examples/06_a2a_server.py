@@ -30,14 +30,14 @@
 import asyncio
 import sys
 
-from agentweave import Agent
-from agentweave.protocols.a2a import A2AServer, AgentCard
+from agentchord import Agent
+from agentchord.protocols.a2a import A2AServer, AgentCard
 
 
 async def main() -> None:
     """A2A 서버 예제."""
     print("=" * 60)
-    print("AgentWeave A2A Server Example")
+    print("AgentChord A2A Server Example")
     print("=" * 60)
 
     # 1. Agent 생성
@@ -52,8 +52,8 @@ async def main() -> None:
 
     # 2. Agent Card 정의
     card = AgentCard(
-        name="agentweave-assistant",
-        description="A helpful multilingual AI assistant powered by AgentWeave",
+        name="agentchord-assistant",
+        description="A helpful multilingual AI assistant powered by AgentChord",
         version="1.0.0",
         capabilities=[
             "text_generation",
@@ -64,7 +64,7 @@ async def main() -> None:
         input_modes=["text"],
         output_modes=["text"],
         metadata={
-            "framework": "AgentWeave",
+            "framework": "AgentChord",
             "model": "gpt-4o-mini",
         },
     )
@@ -110,7 +110,7 @@ async def main() -> None:
 
 async def demo_client() -> None:
     """A2A 클라이언트 데모 (별도 스크립트로 실행)."""
-    from agentweave.protocols.a2a import A2AClient
+    from agentchord.protocols.a2a import A2AClient
 
     print("=" * 60)
     print("A2A Client Demo")

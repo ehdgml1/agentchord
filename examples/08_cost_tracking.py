@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cost Tracking Example.
 
-이 예제는 AgentWeave의 비용 추적 시스템 사용법을 보여줍니다.
+이 예제는 AgentChord의 비용 추적 시스템 사용법을 보여줍니다.
 
 실행:
     python examples/08_cost_tracking.py
@@ -9,7 +9,7 @@
 
 import asyncio
 
-from agentweave.tracking import (
+from agentchord.tracking import (
     TokenUsage,
     CostEntry,
     CostSummary,
@@ -160,7 +160,7 @@ async def demo_callbacks() -> None:
 async def main() -> None:
     """메인 함수."""
     print("\n" + "=" * 60)
-    print("AgentWeave Cost Tracking Examples")
+    print("AgentChord Cost Tracking Examples")
     print("=" * 60)
 
     demo_cost_calculation()

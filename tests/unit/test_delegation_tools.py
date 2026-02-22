@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from agentweave.core.agent import Agent
-from agentweave.orchestration.message_bus import MessageBus
-from agentweave.orchestration.shared_context import SharedContext
-from agentweave.orchestration.tools import create_context_tools, create_delegation_tools
-from agentweave.orchestration.types import MessageType, TeamMember, TeamRole
+from agentchord.core.agent import Agent
+from agentchord.orchestration.message_bus import MessageBus
+from agentchord.orchestration.shared_context import SharedContext
+from agentchord.orchestration.tools import create_context_tools, create_delegation_tools
+from agentchord.orchestration.types import MessageType, TeamMember, TeamRole
 from tests.conftest import MockLLMProvider
 
 
@@ -340,25 +340,28 @@ class TestCreateDelegationToolsSenderName:
 
 
 class TestCoordinatorUsesPublicToolAPI:
-    """Tests verifying coordinator strategy uses ToolExecutor public API (M3)."""
+    """Tests verifying coordinator strategy uses Agent public API (P0-1)."""
 
     @pytest.mark.asyncio
-    async def test_coordinator_uses_public_tool_api(self):
-        """Coordinator should not directly access _tools dict."""
+    async def test_coordinator_uses_public_context_managers(self):
+        """Coordinator should use Agent.temporary_tools/with_extended_prompt, not private fields."""
         import inspect
-        from agentweave.orchestration.strategies.coordinator import CoordinatorStrategy
+        from agentchord.orchestration.strategies.coordinator import CoordinatorStrategy
 
         source = inspect.getsource(CoordinatorStrategy.execute)
 
-        # Should NOT contain direct _tools dict access
-        assert "_tool_executor._tools" not in source, (
-            "CoordinatorStrategy should not access _tool_executor._tools directly"
+        # Should NOT contain direct private field access
+        assert "_tool_executor" not in source, (
+            "CoordinatorStrategy should not access _tool_executor directly"
+        )
+        assert "_system_prompt" not in source, (
+            "CoordinatorStrategy should not access _system_prompt directly"
         )
 
-        # Should use public API methods
-        assert ".unregister(" in source, (
-            "CoordinatorStrategy should use unregister() to remove tools"
+        # Should use public context manager API
+        assert ".temporary_tools(" in source, (
+            "CoordinatorStrategy should use temporary_tools() context manager"
         )
-        assert ".register(" in source, (
-            "CoordinatorStrategy should use register() to add tools"
+        assert ".with_extended_prompt(" in source, (
+            "CoordinatorStrategy should use with_extended_prompt() context manager"
         )

@@ -1,6 +1,8 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Layout } from './Layout';
+import { usePlaygroundStore } from '../../stores/playgroundStore';
 
 // Mock all child components
 vi.mock('./Header', () => ({
@@ -23,7 +25,20 @@ vi.mock('../ExecutionPanel', () => ({
   ExecutionPanel: () => <div data-testid="execution-panel">ExecutionPanel</div>,
 }));
 
+vi.mock('../PlaygroundPanel/PlaygroundPanel', () => ({
+  PlaygroundPanel: () => <div data-testid="playground-panel">PlaygroundPanel</div>,
+}));
+
+vi.mock('../SchedulePanel/SchedulePanel', () => ({
+  SchedulePanel: () => <div data-testid="schedule-panel">SchedulePanel</div>,
+}));
+
 describe('Layout', () => {
+  beforeEach(() => {
+    // Reset playground state before each test
+    usePlaygroundStore.setState({ isOpen: false });
+  });
+
   it('renders children content', () => {
     render(
       <Layout>
@@ -74,5 +89,45 @@ describe('Layout', () => {
     const main = container.querySelector('main');
     expect(main).toBeInTheDocument();
     expect(main).toHaveClass('flex-1');
+  });
+
+  it('renders playground toggle button', () => {
+    render(<Layout><div /></Layout>);
+    expect(screen.getByText('플레이그라운드')).toBeInTheDocument();
+  });
+
+  it('shows properties panel by default', () => {
+    render(<Layout><div /></Layout>);
+    expect(screen.getByTestId('properties-panel')).toBeInTheDocument();
+    expect(screen.queryByTestId('playground-panel')).not.toBeInTheDocument();
+  });
+
+  it('shows playground panel when toggled', async () => {
+    const user = userEvent.setup();
+    render(<Layout><div /></Layout>);
+
+    // Click playground toggle button
+    const playgroundButton = screen.getByText('플레이그라운드');
+    await user.click(playgroundButton);
+
+    // Playground panel should be shown
+    expect(screen.getByTestId('playground-panel')).toBeInTheDocument();
+    // Properties panel should be hidden
+    expect(screen.queryByTestId('properties-panel')).not.toBeInTheDocument();
+  });
+
+  it('toggles back to properties panel', async () => {
+    const user = userEvent.setup();
+    render(<Layout><div /></Layout>);
+
+    // Open playground
+    const playgroundButton = screen.getByText('플레이그라운드');
+    await user.click(playgroundButton);
+    expect(screen.getByTestId('playground-panel')).toBeInTheDocument();
+
+    // Close playground
+    await user.click(playgroundButton);
+    expect(screen.getByTestId('properties-panel')).toBeInTheDocument();
+    expect(screen.queryByTestId('playground-panel')).not.toBeInTheDocument();
   });
 });

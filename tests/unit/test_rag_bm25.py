@@ -1,6 +1,6 @@
 """Tests for BM25 sparse search."""
-from agentweave.rag.search.bm25 import BM25Search
-from agentweave.rag.types import Chunk
+from agentchord.rag.search.bm25 import BM25Search
+from agentchord.rag.types import Chunk
 
 
 class TestBM25Search:

@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from agentweave.memory.base import MemoryEntry
-from agentweave.memory.stores import JSONFileStore, MemoryStore, SQLiteStore
+from agentchord.memory.base import MemoryEntry
+from agentchord.memory.stores import JSONFileStore, MemoryStore, SQLiteStore
 
 # Check if aiosqlite is available for SQLite tests
 try:

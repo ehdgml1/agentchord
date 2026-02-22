@@ -23,9 +23,9 @@ describe('AuthPage', () => {
     vi.clearAllMocks();
   });
 
-  it('renders AgentWeave title', () => {
+  it('renders AgentChord title', () => {
     render(<AuthPage />);
-    expect(screen.getByText('AgentWeave')).toBeInTheDocument();
+    expect(screen.getByText('AgentChord')).toBeInTheDocument();
   });
 
   it('renders Sign In button in login mode', () => {

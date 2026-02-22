@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""AgentWeave Demo - API Key Free Examples
+"""AgentChord Demo - API Key Free Examples
 
-이 스크립트는 실제 API 키 없이 AgentWeave의 주요 기능을 시연합니다.
+이 스크립트는 실제 API 키 없이 AgentChord의 주요 기능을 시연합니다.
 Mock LLM Provider를 사용하여 완전히 독립적으로 실행됩니다.
 
 실행 방법:
@@ -13,7 +13,7 @@ Mock LLM Provider를 사용하여 완전히 독립적으로 실행됩니다.
     3. RAG Pipeline - 문서 검색 및 답변 생성
 
 필요 패키지:
-    pip install agentweave[rag]  # rich는 기본 의존성에 포함
+    pip install agentchord[rag]  # rich는 기본 의존성에 포함
 """
 
 from __future__ import annotations
@@ -28,9 +28,9 @@ from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 # Core imports
-from agentweave.core.agent import Agent
-from agentweave.core.workflow import Workflow
-from agentweave.core.types import (
+from agentchord.core.agent import Agent
+from agentchord.core.workflow import Workflow
+from agentchord.core.types import (
     LLMResponse,
     Message,
     MessageRole,
@@ -38,18 +38,18 @@ from agentweave.core.types import (
     ToolCall,
     Usage,
 )
-from agentweave.llm.base import BaseLLMProvider
-from agentweave.tracking.cost import CostTracker
-from agentweave.tracking.models import TokenUsage
+from agentchord.llm.base import BaseLLMProvider
+from agentchord.tracking.cost import CostTracker
+from agentchord.tracking.models import TokenUsage
 
 # Tool imports
-from agentweave.tools.decorator import tool
+from agentchord.tools.decorator import tool
 
 # RAG imports
-from agentweave.rag.pipeline import RAGPipeline
-from agentweave.rag.types import Document
-from agentweave.rag.embeddings.base import EmbeddingProvider
-from agentweave.rag.vectorstore.in_memory import InMemoryVectorStore
+from agentchord.rag.pipeline import RAGPipeline
+from agentchord.rag.types import Document
+from agentchord.rag.embeddings.base import EmbeddingProvider
+from agentchord.rag.vectorstore.in_memory import InMemoryVectorStore
 
 
 console = Console()
@@ -227,14 +227,14 @@ class MockLLMProvider(BaseLLMProvider):
         # Role-specific responses
         if role == "researcher":
             return (
-                "연구 결과를 종합하면, AgentWeave는 강력한 AI 에이전트 프레임워크입니다. "
+                "연구 결과를 종합하면, AgentChord는 강력한 AI 에이전트 프레임워크입니다. "
                 "멀티 에이전트 협업, RAG, 도구 호출 등 다양한 기능을 제공합니다. "
                 "Python 3.10+ 환경에서 작동하며, OpenAI, Anthropic, Ollama 등 여러 LLM을 지원합니다."
             )
         elif role == "writer":
             return (
-                "# AgentWeave 소개\n\n"
-                "AgentWeave는 현대적인 AI 에이전트 개발을 위한 종합 프레임워크입니다. "
+                "# AgentChord 소개\n\n"
+                "AgentChord는 현대적인 AI 에이전트 개발을 위한 종합 프레임워크입니다. "
                 "연구 자료에 따르면, 이 프레임워크는 다음과 같은 특징을 가지고 있습니다:\n\n"
                 "- **멀티 에이전트 시스템**: 여러 에이전트를 조율하여 복잡한 작업 수행\n"
                 "- **RAG 지원**: 벡터 검색과 하이브리드 검색으로 정확한 정보 제공\n"
@@ -368,7 +368,7 @@ async def demo_multi_agent_workflow():
         flow="researcher -> writer -> reviewer",
     )
 
-    console.print("\n[yellow]Input:[/yellow] AgentWeave 프레임워크에 대한 소개 글을 작성해주세요")
+    console.print("\n[yellow]Input:[/yellow] AgentChord 프레임워크에 대한 소개 글을 작성해주세요")
 
     with Progress(
         SpinnerColumn(),
@@ -376,7 +376,7 @@ async def demo_multi_agent_workflow():
         console=console,
     ) as progress:
         task = progress.add_task("Executing workflow...", total=None)
-        result = await workflow.run("AgentWeave 프레임워크에 대한 소개 글을 작성해주세요")
+        result = await workflow.run("AgentChord 프레임워크에 대한 소개 글을 작성해주세요")
         progress.remove_task(task)
 
     console.print(f"\n[green]Final Output:[/green]\n{result.output}")
@@ -432,7 +432,7 @@ async def demo_rag_pipeline():
     documents = [
         Document(
             content=(
-                "AgentWeave는 Python으로 작성된 강력한 AI 에이전트 프레임워크입니다. "
+                "AgentChord는 Python으로 작성된 강력한 AI 에이전트 프레임워크입니다. "
                 "멀티 에이전트 시스템, RAG, 도구 호출 등을 지원합니다. "
                 "OpenAI, Anthropic, Ollama 등 여러 LLM 프로바이더를 사용할 수 있습니다."
             ),
@@ -441,7 +441,7 @@ async def demo_rag_pipeline():
         ),
         Document(
             content=(
-                "AgentWeave의 주요 기능:\n"
+                "AgentChord의 주요 기능:\n"
                 "1. Agent - 단일 AI 에이전트로 작업 수행\n"
                 "2. Workflow - 여러 에이전트를 조율하여 복잡한 작업 수행\n"
                 "3. RAG Pipeline - 문서 검색 및 답변 생성\n"
@@ -453,12 +453,12 @@ async def demo_rag_pipeline():
         ),
         Document(
             content=(
-                "AgentWeave 설치 방법:\n"
-                "pip install agentweave\n\n"
+                "AgentChord 설치 방법:\n"
+                "pip install agentchord\n\n"
                 "RAG 기능을 사용하려면:\n"
-                "pip install agentweave[rag]\n\n"
+                "pip install agentchord[rag]\n\n"
                 "모든 선택적 의존성 포함:\n"
-                "pip install agentweave[all]"
+                "pip install agentchord[all]"
             ),
             source="docs/installation.txt",
             metadata={"section": "installation"},
@@ -480,7 +480,7 @@ async def demo_rag_pipeline():
 
     # Query the pipeline
     queries = [
-        "AgentWeave가 무엇인가요?",
+        "AgentChord가 무엇인가요?",
         "어떤 기능들을 제공하나요?",
         "어떻게 설치하나요?",
     ]
@@ -511,7 +511,7 @@ async def demo_rag_pipeline():
 async def main():
     """Run all demo scenarios."""
     console.print(Panel.fit(
-        "[bold white]AgentWeave Demo Suite[/bold white]\n"
+        "[bold white]AgentChord Demo Suite[/bold white]\n"
         "[dim]No API keys required - fully self-contained demonstrations[/dim]",
         border_style="bright_white"
     ))
@@ -529,7 +529,7 @@ async def main():
             "Next steps:\n"
             "• Replace MockLLMProvider with real providers (OpenAI, Anthropic, etc.)\n"
             "• Explore advanced features in other examples/\n"
-            "• Read the documentation at https://agentweave.dev",
+            "• Read the documentation at https://agentchord.dev",
             border_style="green"
         ))
 

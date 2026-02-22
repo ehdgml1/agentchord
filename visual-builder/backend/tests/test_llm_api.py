@@ -2,7 +2,7 @@
 import pytest
 import pytest_asyncio
 import uuid
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -21,11 +21,24 @@ def create_mock_user() -> User:
     )
 
 
+def create_mock_secret_store():
+    """Create mock secret store for testing."""
+    mock_store = AsyncMock()
+    # Default: return None for all secret lookups (no user keys)
+    mock_store.get.return_value = None
+    mock_store.set.return_value = None
+    mock_store.delete.return_value = None
+    return mock_store
+
+
 @pytest_asyncio.fixture
 async def test_app_no_keys(monkeypatch):
     """Create FastAPI test app with no API keys configured."""
     app = FastAPI()
     app.include_router(router)
+
+    # Add mock secret_store to app state
+    app.state.secret_store = create_mock_secret_store()
 
     # Override dependencies
     def override_get_current_user():
@@ -45,6 +58,9 @@ async def test_app_with_openai(monkeypatch):
     """Create FastAPI test app with OpenAI key configured."""
     app = FastAPI()
     app.include_router(router)
+
+    # Add mock secret_store to app state
+    app.state.secret_store = create_mock_secret_store()
 
     def override_get_current_user():
         return create_mock_user()
@@ -66,6 +82,9 @@ async def test_app_with_both(monkeypatch):
     """Create FastAPI test app with both API keys configured."""
     app = FastAPI()
     app.include_router(router)
+
+    # Add mock secret_store to app state
+    app.state.secret_store = create_mock_secret_store()
 
     def override_get_current_user():
         return create_mock_user()
@@ -260,3 +279,257 @@ class TestListModels:
         for model in data["models"]:
             # Context windows should be reasonable (at least 8k, at most 2M for Gemini)
             assert 8000 <= model["contextWindow"] <= 2000000
+
+
+class TestLLMKeyManagement:
+    """Test LLM API key management endpoints."""
+
+    def test_get_key_status_no_keys(self, test_app_no_keys):
+        """Get key status when no keys configured."""
+        client = TestClient(test_app_no_keys)
+        resp = client.get("/api/llm/keys")
+
+        assert resp.status_code == 200
+        data = resp.json()
+
+        assert "keys" in data
+        assert len(data["keys"]) == 4  # openai, anthropic, google, ollama
+
+        # Check all providers are present
+        provider_names = {k["provider"] for k in data["keys"]}
+        assert provider_names == {"openai", "anthropic", "google", "ollama"}
+
+        # No server keys except Ollama
+        for key_status in data["keys"]:
+            if key_status["provider"] == "ollama":
+                assert key_status["hasServerKey"] is True
+                assert key_status["configured"] is True
+            else:
+                assert key_status["hasServerKey"] is False
+                assert key_status["hasUserKey"] is False
+                assert key_status["configured"] is False
+
+    def test_get_key_status_with_server_keys(self, test_app_with_both):
+        """Get key status when server keys are configured."""
+        client = TestClient(test_app_with_both)
+        resp = client.get("/api/llm/keys")
+
+        assert resp.status_code == 200
+        data = resp.json()
+
+        # OpenAI and Anthropic should have server keys
+        openai_status = next(k for k in data["keys"] if k["provider"] == "openai")
+        assert openai_status["hasServerKey"] is True
+        assert openai_status["configured"] is True
+
+        anthropic_status = next(k for k in data["keys"] if k["provider"] == "anthropic")
+        assert anthropic_status["hasServerKey"] is True
+        assert anthropic_status["configured"] is True
+
+    def test_get_key_status_with_user_keys(self, test_app_no_keys):
+        """Get key status when user has stored keys."""
+        # Set up mock to return user key for OpenAI
+        test_app_no_keys.state.secret_store.get.return_value = "user-key-123"
+
+        client = TestClient(test_app_no_keys)
+        resp = client.get("/api/llm/keys")
+
+        assert resp.status_code == 200
+        data = resp.json()
+
+        # All providers should show user keys (mock returns same for all)
+        for key_status in data["keys"]:
+            if key_status["provider"] == "ollama":
+                # Ollama always configured
+                assert key_status["configured"] is True
+            else:
+                # Others have user keys
+                assert key_status["hasUserKey"] is True
+                assert key_status["configured"] is True
+
+    def test_set_key_success(self, test_app_no_keys):
+        """Successfully set a user API key."""
+        client = TestClient(test_app_no_keys)
+        resp = client.put(
+            "/api/llm/keys/openai",
+            json={"apiKey": "sk-user-test-key"},
+        )
+
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "ok"}
+
+        # Verify secret_store.set was called
+        test_app_no_keys.state.secret_store.set.assert_called_once()
+
+    def test_set_key_invalid_provider(self, test_app_no_keys):
+        """Setting key for invalid provider fails."""
+        client = TestClient(test_app_no_keys)
+        resp = client.put(
+            "/api/llm/keys/invalid-provider",
+            json={"apiKey": "some-key"},
+        )
+
+        assert resp.status_code == 400
+        assert "Invalid provider" in resp.json()["detail"]
+
+    def test_set_key_empty_key(self, test_app_no_keys):
+        """Setting empty key fails validation."""
+        client = TestClient(test_app_no_keys)
+        resp = client.put(
+            "/api/llm/keys/openai",
+            json={"apiKey": ""},
+        )
+
+        assert resp.status_code == 422  # Validation error
+
+    def test_delete_key_success(self, test_app_no_keys):
+        """Successfully delete a user API key."""
+        client = TestClient(test_app_no_keys)
+        resp = client.delete("/api/llm/keys/anthropic")
+
+        assert resp.status_code == 200
+        assert resp.json() == {"status": "ok"}
+
+        # Verify secret_store.delete was called
+        test_app_no_keys.state.secret_store.delete.assert_called_once()
+
+    def test_delete_key_invalid_provider(self, test_app_no_keys):
+        """Deleting key for invalid provider fails."""
+        client = TestClient(test_app_no_keys)
+        resp = client.delete("/api/llm/keys/invalid-provider")
+
+        assert resp.status_code == 400
+        assert "Invalid provider" in resp.json()["detail"]
+
+    @pytest.mark.asyncio
+    async def test_validate_openai_key_valid(self, test_app_no_keys):
+        """Validate a valid OpenAI API key."""
+        with patch("httpx.AsyncClient") as mock_client_class:
+            # Mock successful response
+            mock_response = AsyncMock()
+            mock_response.status_code = 200
+
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client_class.return_value = mock_client
+
+            client = TestClient(test_app_no_keys)
+            resp = client.post(
+                "/api/llm/keys/openai/validate",
+                json={"apiKey": "sk-valid-key"},
+            )
+
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["valid"] is True
+            assert data["error"] is None
+
+    @pytest.mark.asyncio
+    async def test_validate_openai_key_invalid(self, test_app_no_keys):
+        """Validate an invalid OpenAI API key."""
+        with patch("httpx.AsyncClient") as mock_client_class:
+            # Mock 401 unauthorized response
+            mock_response = AsyncMock()
+            mock_response.status_code = 401
+
+            mock_client = AsyncMock()
+            mock_client.get.return_value = mock_response
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client_class.return_value = mock_client
+
+            client = TestClient(test_app_no_keys)
+            resp = client.post(
+                "/api/llm/keys/openai/validate",
+                json={"apiKey": "sk-invalid-key"},
+            )
+
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["valid"] is False
+            assert "Invalid API key" in data["error"]
+
+    @pytest.mark.asyncio
+    async def test_validate_anthropic_key_valid(self, test_app_no_keys):
+        """Validate a valid Anthropic API key."""
+        with patch("httpx.AsyncClient") as mock_client_class:
+            # Mock 400 response (valid key, bad request body is ok)
+            mock_response = AsyncMock()
+            mock_response.status_code = 400
+
+            mock_client = AsyncMock()
+            mock_client.post.return_value = mock_response
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client_class.return_value = mock_client
+
+            client = TestClient(test_app_no_keys)
+            resp = client.post(
+                "/api/llm/keys/anthropic/validate",
+                json={"apiKey": "sk-ant-valid"},
+            )
+
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["valid"] is True
+
+    @pytest.mark.asyncio
+    async def test_validate_anthropic_key_invalid(self, test_app_no_keys):
+        """Validate an invalid Anthropic API key."""
+        with patch("httpx.AsyncClient") as mock_client_class:
+            # Mock 401 unauthorized response
+            mock_response = AsyncMock()
+            mock_response.status_code = 401
+
+            mock_client = AsyncMock()
+            mock_client.post.return_value = mock_response
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client_class.return_value = mock_client
+
+            client = TestClient(test_app_no_keys)
+            resp = client.post(
+                "/api/llm/keys/anthropic/validate",
+                json={"apiKey": "sk-ant-invalid"},
+            )
+
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["valid"] is False
+            assert "Invalid API key" in data["error"]
+
+    @pytest.mark.asyncio
+    async def test_validate_key_connection_error(self, test_app_no_keys):
+        """Handle connection errors during key validation."""
+        with patch("httpx.AsyncClient") as mock_client_class:
+            # Mock connection error
+            import httpx
+            mock_client = AsyncMock()
+            mock_client.get.side_effect = httpx.ConnectError("Connection failed")
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client_class.return_value = mock_client
+
+            client = TestClient(test_app_no_keys)
+            resp = client.post(
+                "/api/llm/keys/openai/validate",
+                json={"apiKey": "sk-test"},
+            )
+
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["valid"] is False
+            assert "Connection failed" in data["error"]
+
+    def test_validate_key_invalid_provider(self, test_app_no_keys):
+        """Validating key for invalid provider fails."""
+        client = TestClient(test_app_no_keys)
+        resp = client.post(
+            "/api/llm/keys/invalid-provider/validate",
+            json={"apiKey": "some-key"},
+        )
+
+        assert resp.status_code == 400
+        assert "Invalid provider" in resp.json()["detail"]

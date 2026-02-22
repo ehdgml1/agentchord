@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""AgentWeave Hello World Example.
+"""AgentChord Hello World Example.
 
-이 예제는 AgentWeave의 기본적인 Agent 사용법을 보여줍니다.
+이 예제는 AgentChord의 기본적인 Agent 사용법을 보여줍니다.
 
 실행 전 준비:
     1. OpenAI API 키 설정:
@@ -14,7 +14,7 @@
     python examples/01_hello_world.py
 """
 
-from agentweave import Agent
+from agentchord import Agent
 
 
 def main() -> None:
@@ -28,7 +28,7 @@ def main() -> None:
     )
 
     print("=" * 50)
-    print("AgentWeave Hello World")
+    print("AgentChord Hello World")
     print("=" * 50)
     print(f"Agent: {agent.name}")
     print(f"Role: {agent.role}")

@@ -1,7 +1,7 @@
 import pytest
-from agentweave.core.agent import Agent
-from agentweave.core.types import ToolCall, StreamChunk
-from agentweave.tools import tool
+from agentchord.core.agent import Agent
+from agentchord.core.types import ToolCall, StreamChunk
+from agentchord.tools import tool
 from tests.conftest import MockLLMProvider, MockToolCallProvider
 
 
@@ -149,7 +149,7 @@ class TestStreamBackwardCompat:
     async def test_stream_error_handling(self):
         """Stream raises AgentExecutionError on failure."""
         from unittest.mock import AsyncMock
-        from agentweave.errors.exceptions import AgentExecutionError
+        from agentchord.errors.exceptions import AgentExecutionError
 
         provider = MockLLMProvider(response_content="x")
         # Override stream to raise

@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from agentweave.rag.loaders.web import WebLoader
-from agentweave.rag.types import Document
+from agentchord.rag.loaders.web import WebLoader
+from agentchord.rag.types import Document
 
 
 class TestWebLoader:

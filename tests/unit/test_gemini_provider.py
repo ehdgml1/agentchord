@@ -2,10 +2,10 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 
-from agentweave.llm.gemini import GeminiProvider, MODEL_COSTS
-from agentweave.core.types import Message, MessageRole, ToolCall
-from agentweave.errors.exceptions import APIError, AuthenticationError, MissingAPIKeyError
-from agentweave.errors.exceptions import TimeoutError as AgentWeaveTimeoutError
+from agentchord.llm.gemini import GeminiProvider, MODEL_COSTS
+from agentchord.core.types import Message, MessageRole, ToolCall
+from agentchord.errors.exceptions import APIError, AuthenticationError, MissingAPIKeyError
+from agentchord.errors.exceptions import TimeoutError as AgentChordTimeoutError
 
 
 class TestGeminiProviderInit:
@@ -67,7 +67,7 @@ class TestGeminiComplete:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("agentweave.llm.gemini.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.gemini.httpx.AsyncClient", return_value=mock_client):
             provider = GeminiProvider(api_key="test-key")
             messages = [Message(role=MessageRole.USER, content="Hi")]
             result = await provider.complete(messages)
@@ -100,7 +100,7 @@ class TestGeminiComplete:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("agentweave.llm.gemini.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.gemini.httpx.AsyncClient", return_value=mock_client):
             provider = GeminiProvider(api_key="test-key")
             messages = [Message(role=MessageRole.USER, content="Search")]
             result = await provider.complete(messages)
@@ -124,7 +124,7 @@ class TestGeminiComplete:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("agentweave.llm.gemini.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.gemini.httpx.AsyncClient", return_value=mock_client):
             provider = GeminiProvider(api_key="my-secret-key")
             await provider.complete([Message(role=MessageRole.USER, content="Hi")])
 
@@ -143,7 +143,7 @@ class TestGeminiErrors:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("agentweave.llm.gemini.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.gemini.httpx.AsyncClient", return_value=mock_client):
             provider = GeminiProvider(api_key="test-key")
             with pytest.raises(APIError, match="Failed to connect"):
                 await provider.complete([Message(role=MessageRole.USER, content="Hi")])
@@ -155,9 +155,9 @@ class TestGeminiErrors:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("agentweave.llm.gemini.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.gemini.httpx.AsyncClient", return_value=mock_client):
             provider = GeminiProvider(api_key="test-key")
-            with pytest.raises(AgentWeaveTimeoutError):
+            with pytest.raises(AgentChordTimeoutError):
                 await provider.complete([Message(role=MessageRole.USER, content="Hi")])
 
     @pytest.mark.asyncio
@@ -173,7 +173,7 @@ class TestGeminiErrors:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("agentweave.llm.gemini.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.gemini.httpx.AsyncClient", return_value=mock_client):
             provider = GeminiProvider(api_key="bad-key")
             with pytest.raises(AuthenticationError):
                 await provider.complete([Message(role=MessageRole.USER, content="Hi")])
@@ -191,7 +191,7 @@ class TestGeminiErrors:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch("agentweave.llm.gemini.httpx.AsyncClient", return_value=mock_client):
+        with patch("agentchord.llm.gemini.httpx.AsyncClient", return_value=mock_client):
             provider = GeminiProvider(api_key="test-key")
             with pytest.raises(APIError, match="500"):
                 await provider.complete([Message(role=MessageRole.USER, content="Hi")])
@@ -201,10 +201,10 @@ class TestGeminiRegistry:
     """Tests for GeminiProvider registry integration."""
 
     def test_detect_gemini_model(self):
-        import agentweave.llm.registry as registry_module
+        import agentchord.llm.registry as registry_module
         registry_module._default_registry = None
         try:
-            from agentweave.llm.registry import get_registry
+            from agentchord.llm.registry import get_registry
             registry = get_registry()
             assert registry.detect_provider("gemini-2.0-flash") == "gemini"
             assert registry.detect_provider("gemini-1.5-pro") == "gemini"

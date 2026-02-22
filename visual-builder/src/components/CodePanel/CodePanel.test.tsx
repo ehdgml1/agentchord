@@ -73,12 +73,12 @@ describe('CodePanel', () => {
     expect(screen.getByText('Python Code')).toBeInTheDocument();
   });
 
-  it('displays "(AgentWeave)" subtitle', () => {
+  it('displays "(AgentChord)" subtitle', () => {
     (useWorkflowStore as any).mockImplementation((selector: any) =>
       selector({ nodes: mockNodes, edges: mockEdges })
     );
     render(<CodePanel />);
-    expect(screen.getByText('(AgentWeave)')).toBeInTheDocument();
+    expect(screen.getByText('(AgentChord)')).toBeInTheDocument();
   });
 
   it('shows placeholder text when no nodes', () => {

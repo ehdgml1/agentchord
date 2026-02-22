@@ -1,12 +1,12 @@
 [project]
-name = "agentweave"
+name = "agentchord"
 version = "0.2.0"
 description = "Protocol-First Multi-Agent Framework (MCP + A2A)"
 authors = [
-    { name = "AgentWeave Contributors" },
+    { name = "AgentChord Contributors" },
 ]
 maintainers = [
-    { name = "AgentWeave Contributors" },
+    { name = "AgentChord Contributors" },
 ]
 license = { text = "MIT" }
 readme = "README.md"
@@ -64,11 +64,11 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/agentweave/agentweave"
-Repository = "https://github.com/agentweave/agentweave"
-Documentation = "https://agentweave.github.io/agentweave"
-"Bug Tracker" = "https://github.com/agentweave/agentweave/issues"
-Changelog = "https://github.com/agentweave/agentweave/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/agentchord/agentchord"
+Repository = "https://github.com/agentchord/agentchord"
+Documentation = "https://agentchord.github.io/agentchord"
+"Bug Tracker" = "https://github.com/agentchord/agentchord/issues"
+Changelog = "https://github.com/agentchord/agentchord/blob/main/CHANGELOG.md"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
@@ -110,7 +110,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["agentweave"]
+source = ["agentchord"]
 omit = [
     "*/tests/*",
     "*/examples/*",

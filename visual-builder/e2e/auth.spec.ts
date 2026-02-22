@@ -6,7 +6,7 @@ test.describe('Authentication Flow', () => {
   test.describe('Login', () => {
     test('shows login form on initial load', async ({ page }) => {
       await page.goto('/');
-      await expect(page.getByText('AgentWeave')).toBeVisible();
+      await expect(page.getByText('AgentChord')).toBeVisible();
       await expect(page.getByPlaceholder('you@example.com')).toBeVisible();
       await expect(page.getByPlaceholder('••••••••')).toBeVisible();
       await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();

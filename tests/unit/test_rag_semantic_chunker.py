@@ -5,8 +5,8 @@ from __future__ import annotations
 import asyncio
 import pytest
 
-from agentweave.rag.chunking.semantic import SemanticChunker
-from agentweave.rag.types import Document
+from agentchord.rag.chunking.semantic import SemanticChunker
+from agentchord.rag.types import Document
 
 
 class MockEmbeddingProvider:
@@ -453,7 +453,7 @@ async def test_realistic_document_chunking():
     """Test chunking a realistic multi-topic document."""
     # Create embeddings for different topics
     embeddings = {
-        "AgentWeave is a framework.": [1.0, 0.0, 0.0],
+        "AgentChord is a framework.": [1.0, 0.0, 0.0],
         "It supports multiple agents.": [0.9, 0.1, 0.0],
         "Python is a programming language.": [0.0, 1.0, 0.0],
         "It is used for AI development.": [0.0, 0.9, 0.1],
@@ -462,7 +462,7 @@ async def test_realistic_document_chunking():
     chunker = SemanticChunker(provider, threshold=0.5, min_chunk_size=50)
 
     content = (
-        "AgentWeave is a framework. It supports multiple agents. "
+        "AgentChord is a framework. It supports multiple agents. "
         "Python is a programming language. It is used for AI development."
     )
     doc = Document(

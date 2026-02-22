@@ -1,1 +1,1 @@
-"""AgentWeave test suite."""
+"""AgentChord test suite."""

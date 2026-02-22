@@ -4,7 +4,7 @@ import { mockAuthAPI } from './fixtures';
 test.describe('Application Health', () => {
   test('loads the login page', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('AgentWeave')).toBeVisible();
+    await expect(page.getByText('AgentChord')).toBeVisible();
   });
 
   test('shows sign in form', async ({ page }) => {

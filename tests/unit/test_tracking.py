@@ -4,20 +4,20 @@ from __future__ import annotations
 
 import pytest
 
-from agentweave.tracking.models import TokenUsage, CostEntry, CostSummary
-from agentweave.tracking.pricing import (
+from agentchord.tracking.models import TokenUsage, CostEntry, CostSummary
+from agentchord.tracking.pricing import (
     MODEL_PRICING,
     calculate_cost,
     get_model_pricing,
     DEFAULT_PRICING,
 )
-from agentweave.tracking.cost import CostTracker
-from agentweave.tracking.callbacks import (
+from agentchord.tracking.cost import CostTracker
+from agentchord.tracking.callbacks import (
     CallbackEvent,
     CallbackContext,
     CallbackManager,
 )
-from agentweave.errors.exceptions import CostLimitExceededError
+from agentchord.errors.exceptions import CostLimitExceededError
 
 
 class TestTokenUsage:

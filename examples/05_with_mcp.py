@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """MCP Integration Example.
 
-AgentWeave에서 MCP(Model Context Protocol)를 사용하여
+AgentChord에서 MCP(Model Context Protocol)를 사용하여
 외부 도구를 Agent에 연결하는 방법을 보여줍니다.
 
 이 예제는 시뮬레이션 모드로 실행되어 API 키 없이 동작합니다.
@@ -20,16 +20,16 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from unittest.mock import AsyncMock
 
-from agentweave import Agent
-from agentweave.protocols.mcp.types import MCPTool, MCPToolResult
-from agentweave.protocols.mcp.adapter import mcp_tool_to_tool
+from agentchord import Agent
+from agentchord.protocols.mcp.types import MCPTool, MCPToolResult
+from agentchord.protocols.mcp.adapter import mcp_tool_to_tool
 from tests.conftest import MockLLMProvider
 
 
 async def demo_mcp_adapter() -> None:
     """MCP 도구 변환 데모."""
     print("=" * 60)
-    print("1. MCP Tool → AgentWeave Tool Adapter")
+    print("1. MCP Tool → AgentChord Tool Adapter")
     print("=" * 60)
 
     # MCPTool 정의 (실제로는 MCP 서버에서 자동 발견됨)
@@ -52,7 +52,7 @@ async def demo_mcp_adapter() -> None:
         return_value=MCPToolResult(content="Hello, World!", is_error=False)
     )
 
-    # MCPTool → AgentWeave Tool 변환
+    # MCPTool → AgentChord Tool 변환
     tool = mcp_tool_to_tool(mcp_tool, mock_client)
 
     print(f"\n[변환된 Tool]")
@@ -134,7 +134,7 @@ async def demo_agent_with_mcp() -> None:
 [실제 MCP 서버 연결 코드]
 
     import os
-    from agentweave.protocols.mcp import MCPClient
+    from agentchord.protocols.mcp import MCPClient
 
     async with MCPClient() as mcp:
         # MCP 서버 연결
@@ -159,7 +159,7 @@ async def demo_agent_with_mcp() -> None:
 
 async def main() -> None:
     print("\n" + "=" * 60)
-    print("AgentWeave MCP Integration Examples")
+    print("AgentChord MCP Integration Examples")
     print("=" * 60)
 
     await demo_mcp_adapter()

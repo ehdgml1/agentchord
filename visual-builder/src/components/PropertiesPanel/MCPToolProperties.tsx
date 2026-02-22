@@ -5,8 +5,8 @@
  * tool selection, and parameters.
  */
 
-import { memo, useCallback, useEffect, useState } from 'react';
-import { Input } from '../ui/input';
+import { memo, useCallback, useEffect, useState, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import {
@@ -19,22 +19,58 @@ import {
 import type { MCPToolBlockData } from '../../types/blocks';
 import type { MCPServer, MCPTool } from '../../types/mcp';
 import { api } from '../../services/api';
+import { ParameterEditor } from './ParameterEditor';
+import { useWorkflowStore } from '../../stores/workflowStore';
 
 interface MCPToolPropertiesProps {
+  nodeId: string;
   data: MCPToolBlockData;
   onChange: (data: Partial<MCPToolBlockData>) => void;
 }
 
 export const MCPToolProperties = memo(function MCPToolProperties({
+  nodeId,
   data,
   onChange,
 }: MCPToolPropertiesProps) {
+  const { nodes, edges } = useWorkflowStore(
+    useShallow(s => ({
+      nodes: s.nodes,
+      edges: s.edges,
+    }))
+  );
+
   const [servers, setServers] = useState<MCPServer[]>([]);
   const [tools, setTools] = useState<MCPTool[]>([]);
   const [loadingServers, setLoadingServers] = useState(false);
   const [loadingTools, setLoadingTools] = useState(false);
   const [selectedTool, setSelectedTool] = useState<MCPTool | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Compute upstream template variables — label must match canvas display name
+  const templateVars = useMemo(() => {
+    const upstreamEdges = edges.filter(e => e.target === nodeId);
+    const vars: { label: string; value: string }[] = [];
+    for (const edge of upstreamEdges) {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      if (!sourceNode) continue;
+      // Match the display name shown on the canvas for each node type
+      const nodeType = sourceNode.type;
+      const d = sourceNode.data;
+      const nodeName = nodeType === 'mcp_tool'
+        ? (d?.toolName || d?.name || d?.label || sourceNode.id)
+        : (d?.name || d?.label || sourceNode.id);
+      // Add .output reference for all upstream nodes
+      vars.push({ label: `${nodeName}.output`, value: `{{${sourceNode.id}.output}}` });
+      // If it's an Agent with outputFields, add field-level vars
+      if (d?.outputFields && Array.isArray(d.outputFields)) {
+        for (const field of d.outputFields) {
+          vars.push({ label: `${nodeName}.${field.name}`, value: `{{${sourceNode.id}.${field.name}}}` });
+        }
+      }
+    }
+    return vars;
+  }, [nodes, edges, nodeId]);
 
   // Fetch servers on mount
   useEffect(() => {
@@ -155,74 +191,13 @@ export const MCPToolProperties = memo(function MCPToolProperties({
       );
     }
 
-    const schema = selectedTool.inputSchema;
-    const properties = schema.properties as Record<string, any> | undefined;
-
-    if (!properties || Object.keys(properties).length === 0) {
-      return (
-        <div className="space-y-2">
-          <Label>Parameters</Label>
-          <p className="text-sm text-muted-foreground">No parameters required</p>
-        </div>
-      );
-    }
-
-    // For complex schemas, fall back to JSON textarea
-    const hasComplexTypes = Object.values(properties).some(
-      (prop: any) => prop.type === 'object' || prop.type === 'array'
-    );
-
-    if (hasComplexTypes) {
-      return (
-        <div className="space-y-2">
-          <Label htmlFor="parameters">Parameters (JSON)</Label>
-          <Textarea
-            id="parameters"
-            value={JSON.stringify(data.parameters || {}, null, 2)}
-            onChange={handleParametersChange}
-            placeholder='{\n  "key": "value"\n}'
-            rows={6}
-            className="font-mono text-sm"
-          />
-          <p className="text-xs text-muted-foreground">
-            Complex schema detected. Edit as JSON.
-          </p>
-        </div>
-      );
-    }
-
-    // Render simple form fields
     return (
-      <div className="space-y-4">
-        <Label>Parameters</Label>
-        {Object.entries(properties).map(([key, prop]: [string, any]) => {
-          const isRequired = (schema.required as string[] | undefined)?.includes(key);
-          return (
-            <div key={key} className="space-y-2">
-              <Label htmlFor={`param-${key}`}>
-                {key}
-                {isRequired && <span className="text-destructive ml-1">*</span>}
-              </Label>
-              {prop.description && (
-                <p className="text-xs text-muted-foreground">{prop.description}</p>
-              )}
-              <Input
-                id={`param-${key}`}
-                value={(data.parameters?.[key] as string) || ''}
-                onChange={(e) => {
-                  onChange({
-                    parameters: {
-                      ...data.parameters,
-                      [key]: e.target.value,
-                    },
-                  });
-                }}
-                placeholder={prop.default || ''}
-              />
-            </div>
-          );
-        })}
-      </div>
+      <ParameterEditor
+        schema={selectedTool.inputSchema}
+        value={data.parameters || {}}
+        onChange={(params) => onChange({ parameters: params })}
+        templateVars={templateVars}
+      />
     );
   };
 

@@ -314,7 +314,7 @@ export const useWorkflowStore = create<WorkflowState>()(
       },
     }),
     {
-      name: 'agentweave-workflow',
+      name: 'agentchord-workflow',
       partialize: (state) => ({
         workflowId: state.workflowId,
         workflowName: state.workflowName,

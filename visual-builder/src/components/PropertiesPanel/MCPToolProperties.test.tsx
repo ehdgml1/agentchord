@@ -20,6 +20,14 @@ vi.mock('../../services/api', () => ({
   },
 }));
 
+// Mock the workflow store
+vi.mock('../../stores/workflowStore', () => ({
+  useWorkflowStore: vi.fn(() => ({
+    nodes: [],
+    edges: [],
+  })),
+}));
+
 const mockServers: MCPServer[] = [
   {
     id: 'server-1',
@@ -102,13 +110,13 @@ describe('MCPToolProperties', () => {
   });
 
   it('renders loading state initially', () => {
-    render(<MCPToolProperties data={defaultData} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={defaultData} onChange={mockOnChange} />);
 
     expect(screen.getByText('Loading servers...')).toBeInTheDocument();
   });
 
   it('loads and displays connected servers', async () => {
-    render(<MCPToolProperties data={defaultData} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={defaultData} onChange={mockOnChange} />);
 
     await waitFor(() => {
       expect(api.mcp.listServers).toHaveBeenCalled();
@@ -126,7 +134,7 @@ describe('MCPToolProperties', () => {
 
   it('handles server selection and loads tools', async () => {
     const user = userEvent.setup();
-    render(<MCPToolProperties data={defaultData} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={defaultData} onChange={mockOnChange} />);
 
     await waitFor(() => {
       expect(screen.queryByText('Loading servers...')).not.toBeInTheDocument();
@@ -155,7 +163,7 @@ describe('MCPToolProperties', () => {
       serverName: 'Test Server 1',
     };
 
-    render(<MCPToolProperties data={dataWithServer} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={dataWithServer} onChange={mockOnChange} />);
 
     await waitFor(() => {
       expect(api.mcp.getTools).toHaveBeenCalledWith('server-1');
@@ -176,7 +184,7 @@ describe('MCPToolProperties', () => {
       serverName: 'Test Server 1',
     };
 
-    render(<MCPToolProperties data={dataWithServer} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={dataWithServer} onChange={mockOnChange} />);
 
     await waitFor(() => {
       expect(screen.queryByText('Loading tools...')).not.toBeInTheDocument();
@@ -208,7 +216,7 @@ describe('MCPToolProperties', () => {
       parameters: {},
     };
 
-    render(<MCPToolProperties data={dataWithTool} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={dataWithTool} onChange={mockOnChange} />);
 
     await waitFor(() => {
       expect(screen.getByLabelText(/param1/i)).toBeInTheDocument();
@@ -230,7 +238,7 @@ describe('MCPToolProperties', () => {
     );
   });
 
-  it('renders JSON textarea for complex schema', async () => {
+  it('renders parameter form for complex nested schema', async () => {
     vi.mocked(api.mcp.getTools).mockResolvedValue([mockComplexTool]);
 
     const dataWithComplexTool: MCPToolBlockData = {
@@ -242,13 +250,12 @@ describe('MCPToolProperties', () => {
       parameters: { nested: { value: 'test' } },
     };
 
-    render(<MCPToolProperties data={dataWithComplexTool} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={dataWithComplexTool} onChange={mockOnChange} />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/parameters \(json\)/i)).toBeInTheDocument();
+      // ParameterEditor should handle nested objects with proper form UI
+      expect(screen.getByText('nested')).toBeInTheDocument();
     });
-
-    expect(screen.getByText(/complex schema detected/i)).toBeInTheDocument();
   });
 
   it('handles JSON parameter changes', async () => {
@@ -271,14 +278,14 @@ describe('MCPToolProperties', () => {
       parameters: {},
     };
 
-    render(<MCPToolProperties data={dataWithTool} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={dataWithTool} onChange={mockOnChange} />);
 
     await waitFor(() => {
-      expect(screen.getByText('No parameters required')).toBeInTheDocument();
+      expect(screen.getByText('이 도구는 매개변수가 없습니다.')).toBeInTheDocument();
     });
   });
 
-  it('handles invalid JSON gracefully', async () => {
+  it('handles parameter changes for nested objects', async () => {
     const user = userEvent.setup();
     vi.mocked(api.mcp.getTools).mockResolvedValue([mockComplexTool]);
 
@@ -289,21 +296,18 @@ describe('MCPToolProperties', () => {
       parameters: {},
     };
 
-    render(<MCPToolProperties data={dataWithTool} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={dataWithTool} onChange={mockOnChange} />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/parameters \(json\)/i)).toBeInTheDocument();
+      expect(screen.getByText('nested')).toBeInTheDocument();
     });
 
-    const jsonTextarea = screen.getByLabelText(/parameters \(json\)/i);
+    // Find the value input within the nested object
+    const valueInput = screen.getByLabelText(/value/i);
+    await user.type(valueInput, 'test-value');
 
-    const initialCallCount = mockOnChange.mock.calls.length;
-    await user.clear(jsonTextarea);
-    await user.type(jsonTextarea, 'invalid');
-
-    // Should not call onChange for invalid JSON (only clear might trigger)
-    const finalCallCount = mockOnChange.mock.calls.length;
-    expect(finalCallCount).toBe(initialCallCount);
+    // onChange should be called with the nested structure
+    expect(mockOnChange).toHaveBeenCalled();
   });
 
   it('handles mock response changes', async () => {
@@ -316,7 +320,7 @@ describe('MCPToolProperties', () => {
       mockResponse: '',
     };
 
-    render(<MCPToolProperties data={dataWithTool} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={dataWithTool} onChange={mockOnChange} />);
 
     await waitFor(() => {
       expect(screen.getByLabelText(/mock response/i)).toBeInTheDocument();
@@ -336,7 +340,7 @@ describe('MCPToolProperties', () => {
   it('displays error when server loading fails', async () => {
     vi.mocked(api.mcp.listServers).mockRejectedValue(new Error('Network error'));
 
-    render(<MCPToolProperties data={defaultData} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={defaultData} onChange={mockOnChange} />);
 
     await waitFor(() => {
       expect(screen.getByText('Failed to load MCP servers')).toBeInTheDocument();
@@ -357,14 +361,14 @@ describe('MCPToolProperties', () => {
       serverName: 'Test Server 1',
     };
 
-    render(<MCPToolProperties data={dataWithServer} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={dataWithServer} onChange={mockOnChange} />);
 
     await waitFor(() => {
       expect(screen.getByText('Failed to load MCP tools')).toBeInTheDocument();
     });
   });
 
-  it('shows "No parameters required" for tools without parameters', async () => {
+  it('shows "이 도구는 매개변수가 없습니다." for tools without parameters', async () => {
     const dataWithTool: MCPToolBlockData = {
       ...defaultData,
       serverId: 'server-1',
@@ -383,10 +387,10 @@ describe('MCPToolProperties', () => {
       },
     ]);
 
-    render(<MCPToolProperties data={dataWithTool} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={dataWithTool} onChange={mockOnChange} />);
 
     await waitFor(() => {
-      expect(screen.getByText('No parameters required')).toBeInTheDocument();
+      expect(screen.getByText('이 도구는 매개변수가 없습니다.')).toBeInTheDocument();
     });
   });
 
@@ -405,7 +409,7 @@ describe('MCPToolProperties', () => {
       },
     ]);
 
-    render(<MCPToolProperties data={dataWithTool} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={dataWithTool} onChange={mockOnChange} />);
 
     await waitFor(() => {
       expect(screen.getByLabelText(/parameters \(json\)/i)).toBeInTheDocument();
@@ -415,7 +419,7 @@ describe('MCPToolProperties', () => {
   it('shows "No servers available" when no connected servers', async () => {
     vi.mocked(api.mcp.listServers).mockResolvedValue([]);
 
-    render(<MCPToolProperties data={defaultData} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={defaultData} onChange={mockOnChange} />);
 
     await waitFor(() => {
       expect(screen.getByText('No servers available')).toBeInTheDocument();
@@ -431,7 +435,7 @@ describe('MCPToolProperties', () => {
       serverName: 'Test Server 1',
     };
 
-    render(<MCPToolProperties data={dataWithServer} onChange={mockOnChange} />);
+    render(<MCPToolProperties nodeId="test-node" data={dataWithServer} onChange={mockOnChange} />);
 
     await waitFor(() => {
       const toolTrigger = screen.getByRole('combobox', { name: /tool/i });

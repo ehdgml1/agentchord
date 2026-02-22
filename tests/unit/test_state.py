@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from agentweave.core.state import WorkflowResult, WorkflowState, WorkflowStatus
-from agentweave.core.types import AgentResult, Usage
+from agentchord.core.state import WorkflowResult, WorkflowState, WorkflowStatus
+from agentchord.core.types import AgentResult, Usage
 
 
 def create_agent_result(

@@ -11,10 +11,10 @@ from typing import Any
 
 import pytest
 
-from agentweave.core.agent import Agent
-from agentweave.memory.conversation import ConversationMemory
-from agentweave.memory.base import MemoryEntry
-from agentweave.tracking.cost import CostTracker
+from agentchord.core.agent import Agent
+from agentchord.memory.conversation import ConversationMemory
+from agentchord.memory.base import MemoryEntry
+from agentchord.tracking.cost import CostTracker
 
 
 class TestAgentBenchmarks:
@@ -189,7 +189,7 @@ class TestMemoryBenchmarks:
         Tests vector similarity search performance.
         Target: < 2000ms for 50 semantic searches on 500 entries.
         """
-        from agentweave.memory.semantic import SemanticMemory
+        from agentchord.memory.semantic import SemanticMemory
 
         # Simple deterministic embedding function
         def embed(text: str) -> list[float]:
@@ -213,7 +213,7 @@ class TestMemoryBenchmarks:
         Tests embedding and insertion overhead.
         Target: < 500ms for 200 entries.
         """
-        from agentweave.memory.semantic import SemanticMemory
+        from agentchord.memory.semantic import SemanticMemory
 
         def embed(text: str) -> list[float]:
             return [float(ord(c) % 10) / 10 for c in text[:50].ljust(50)]
@@ -233,7 +233,7 @@ class TestMemoryBenchmarks:
         Tests key-value operations performance.
         Target: < 100ms for 1000 set + 1000 get operations.
         """
-        from agentweave.memory.working import WorkingMemory
+        from agentchord.memory.working import WorkingMemory
 
         memory = WorkingMemory(max_items=1000)
 
@@ -252,7 +252,7 @@ class TestMemoryBenchmarks:
         Tests atomic increment operations.
         Target: < 50ms for 1000 increments.
         """
-        from agentweave.memory.working import WorkingMemory
+        from agentchord.memory.working import WorkingMemory
 
         memory = WorkingMemory()
 
@@ -278,7 +278,7 @@ class TestWorkflowBenchmarks:
         Tests sequential workflow execution overhead.
         Target: < 50ms average for 3-agent sequential flow.
         """
-        from agentweave.core.workflow import Workflow
+        from agentchord.core.workflow import Workflow
 
         agents = [
             Agent(name=f"agent_{i}", role=f"Agent {i}", llm_provider=bench_provider)
@@ -303,7 +303,7 @@ class TestWorkflowBenchmarks:
         Tests parallel workflow execution with asyncio concurrency.
         Target: < 50ms average (should be similar to single agent due to asyncio).
         """
-        from agentweave.core.workflow import Workflow
+        from agentchord.core.workflow import Workflow
 
         agents = [
             Agent(name=f"p_{i}", role=f"Parallel {i}", llm_provider=bench_provider)
@@ -332,7 +332,7 @@ class TestWorkflowBenchmarks:
         Tests workflow orchestration overhead with complex topology.
         Target: < 100ms average for 10-agent mixed flow.
         """
-        from agentweave.core.workflow import Workflow
+        from agentchord.core.workflow import Workflow
 
         agents = [
             Agent(name=f"node_{i}", role=f"Node {i}", llm_provider=bench_provider)
@@ -368,7 +368,7 @@ class TestStructuredOutputBenchmarks:
 
         from pydantic import BaseModel
 
-        from agentweave.core.structured import OutputSchema
+        from agentchord.core.structured import OutputSchema
 
         class Result(BaseModel):
             name: str
@@ -393,7 +393,7 @@ class TestStructuredOutputBenchmarks:
         """
         from pydantic import BaseModel
 
-        from agentweave.core.structured import OutputSchema
+        from agentchord.core.structured import OutputSchema
 
         class Simple(BaseModel):
             value: int
@@ -418,7 +418,7 @@ class TestStructuredOutputBenchmarks:
 
         from pydantic import BaseModel
 
-        from agentweave.core.structured import OutputSchema
+        from agentchord.core.structured import OutputSchema
 
         class Address(BaseModel):
             street: str
@@ -473,7 +473,7 @@ class TestCostTrackingBenchmarks:
         Tests cost tracking overhead for high-volume scenarios.
         Target: < 100ms for 1000 track calls.
         """
-        from agentweave.tracking.models import CostEntry, TokenUsage
+        from agentchord.tracking.models import CostEntry, TokenUsage
 
         tracker = CostTracker()
 
@@ -497,7 +497,7 @@ class TestCostTrackingBenchmarks:
         Tests summary aggregation performance.
         Target: < 50ms for summary after 1000 records.
         """
-        from agentweave.tracking.models import CostEntry, TokenUsage
+        from agentchord.tracking.models import CostEntry, TokenUsage
 
         tracker = CostTracker()
 
@@ -528,7 +528,7 @@ class TestToolExecutionBenchmarks:
         Tests overhead of registering tools with agents.
         Target: < 10ms for registering 10 tools.
         """
-        from agentweave.tools.base import Tool, ToolParameter
+        from agentchord.tools.base import Tool, ToolParameter
 
         def dummy_func(x: int) -> int:
             return x * 2
@@ -562,7 +562,7 @@ class TestToolExecutionBenchmarks:
         Tests tool wrapper execution performance.
         Target: < 100ms for 500 sync tool executions.
         """
-        from agentweave.tools.base import Tool, ToolParameter
+        from agentchord.tools.base import Tool, ToolParameter
 
         def add(a: int, b: int) -> int:
             return a + b
@@ -591,7 +591,7 @@ class TestToolExecutionBenchmarks:
         Tests async tool wrapper execution performance.
         Target: < 100ms for 500 async tool executions.
         """
-        from agentweave.tools.base import Tool, ToolParameter
+        from agentchord.tools.base import Tool, ToolParameter
 
         async def add_async(a: int, b: int) -> int:
             return a + b

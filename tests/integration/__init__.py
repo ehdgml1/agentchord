@@ -1,1 +1,1 @@
-"""Integration tests for agentweave."""
+"""Integration tests for agentchord."""

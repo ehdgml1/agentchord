@@ -5,7 +5,7 @@ Accepted
 
 ## Context
 
-AgentWeave integrates with multiple LLM providers (OpenAI, Anthropic, Ollama, Gemini), each having different API clients, response formats, and authentication mechanisms. We needed an abstraction layer that would:
+AgentChord integrates with multiple LLM providers (OpenAI, Anthropic, Ollama, Gemini), each having different API clients, response formats, and authentication mechanisms. We needed an abstraction layer that would:
 
 1. Provide a unified interface across all providers
 2. Enable runtime provider selection based on model names (e.g., `gpt-4o` → OpenAI, `claude-3-5-sonnet` → Anthropic)
@@ -24,7 +24,7 @@ We implemented a **two-layer abstraction**:
 
 ### Layer 1: BaseLLMProvider ABC
 
-Located in `agentweave/llm/base.py`, `BaseLLMProvider` defines the contract that all providers must implement:
+Located in `agentchord/llm/base.py`, `BaseLLMProvider` defines the contract that all providers must implement:
 
 ```python
 class BaseLLMProvider(ABC):
@@ -64,7 +64,7 @@ class BaseLLMProvider(ABC):
 
 ### Layer 2: ProviderRegistry
 
-Located in `agentweave/llm/registry.py`, `ProviderRegistry` manages provider registration and auto-detection:
+Located in `agentchord/llm/registry.py`, `ProviderRegistry` manages provider registration and auto-detection:
 
 ```python
 class ProviderRegistry:
@@ -154,9 +154,9 @@ def _parse_tool_arguments(arguments: str) -> dict[str, Any]:
 ### Neutral
 - **Factory pattern overhead**: Each provider requires a factory function in `_register_defaults()`, adding boilerplate
 - **Cost tables**: Each provider maintains a hardcoded `MODEL_COSTS` dict that must be manually updated when pricing changes
-- **Error translation**: Each provider must translate SDK-specific errors (e.g., `openai.RateLimitError`) to AgentWeave errors (`RateLimitError`)
+- **Error translation**: Each provider must translate SDK-specific errors (e.g., `openai.RateLimitError`) to AgentChord errors (`RateLimitError`)
 
 ## References
-- Implementation: `agentweave/llm/base.py`, `agentweave/llm/registry.py`
-- Providers: `agentweave/llm/{openai,anthropic,ollama,gemini}.py`
-- Tests: `agentweave/tests/unit/llm/test_registry.py` (25 tests)
+- Implementation: `agentchord/llm/base.py`, `agentchord/llm/registry.py`
+- Providers: `agentchord/llm/{openai,anthropic,ollama,gemini}.py`
+- Tests: `agentchord/tests/unit/llm/test_registry.py` (25 tests)

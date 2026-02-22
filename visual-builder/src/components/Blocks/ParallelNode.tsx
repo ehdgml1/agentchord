@@ -2,15 +2,18 @@ import { memo } from 'react';
 import { type NodeProps, Handle, Position } from '@xyflow/react';
 import { GitBranch } from 'lucide-react';
 import { BaseNode } from './BaseNode';
+import { useNodeExecutionStatus } from '../../hooks/useNodeExecutionStatus';
 import type { ParallelBlockData } from '../../types/blocks';
 
 type ParallelNodeProps = NodeProps & {
   data: ParallelBlockData & { label?: string };
 };
 
-export const ParallelNode = memo(function ParallelNode({ data, selected }: ParallelNodeProps) {
+export const ParallelNode = memo(function ParallelNode({ id, data, selected }: ParallelNodeProps) {
+  const executionStatus = useNodeExecutionStatus(id);
+
   return (
-    <BaseNode color="#10B981" selected={selected} hasOutput={false}>
+    <BaseNode color="#10B981" selected={selected} hasOutput={false} executionStatus={executionStatus}>
       <div className="p-3">
         <div className="flex items-center gap-2">
           <div className="p-1.5 rounded bg-emerald-100">

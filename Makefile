@@ -7,7 +7,7 @@ test:  ## Run all tests
 	python -m pytest tests/ -q --tb=short
 
 test-cov:  ## Run tests with coverage
-	python -m pytest tests/ --cov=agentweave --cov-report=term-missing --cov-report=html
+	python -m pytest tests/ --cov=agentchord --cov-report=term-missing --cov-report=html
 
 test-unit:  ## Run unit tests only
 	python -m pytest tests/unit/ -q --tb=short
@@ -28,7 +28,7 @@ format-check:  ## Check code formatting
 	ruff format --check .
 
 typecheck:  ## Run type checker
-	mypy agentweave/ --ignore-missing-imports
+	mypy agentchord/ --ignore-missing-imports
 
 clean:  ## Clean build artifacts
 	rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov .coverage coverage.xml dist build *.egg-info

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Streaming Example.
 
-AgentWeave의 스트리밍 기능을 보여줍니다.
+AgentChord의 스트리밍 기능을 보여줍니다.
 도구가 없을 때는 순수 스트리밍, 도구가 있을 때는 도구 실행 후 응답을 보여줍니다.
 
 이 예제는 Mock 프로바이더로 실행되어 API 키가 필요 없습니다.
@@ -17,9 +17,9 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from agentweave import Agent
-from agentweave.tools import tool
-from agentweave.core.types import ToolCall
+from agentchord import Agent
+from agentchord.tools import tool
+from agentchord.core.types import ToolCall
 from tests.conftest import MockLLMProvider, MockToolCallProvider
 
 
@@ -116,7 +116,7 @@ async def demo_streaming_concept() -> None:
 
 async def main() -> None:
     print("\n" + "=" * 60)
-    print("AgentWeave Streaming Examples")
+    print("AgentChord Streaming Examples")
     print("=" * 60)
 
     await demo_basic_streaming()

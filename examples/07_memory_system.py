@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Memory System Example.
 
-이 예제는 AgentWeave의 메모리 시스템 사용법을 보여줍니다.
+이 예제는 AgentChord의 메모리 시스템 사용법을 보여줍니다.
 
 실행:
     python examples/07_memory_system.py
 """
 
-from agentweave.memory import (
+from agentchord.memory import (
     MemoryEntry,
     ConversationMemory,
     SemanticMemory,
@@ -135,7 +135,7 @@ def demo_working_memory() -> None:
 def main() -> None:
     """메인 함수."""
     print("\n" + "=" * 60)
-    print("AgentWeave Memory System Examples")
+    print("AgentChord Memory System Examples")
     print("=" * 60)
 
     demo_conversation_memory()

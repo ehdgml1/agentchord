@@ -1,6 +1,9 @@
 import { memo, type ReactNode } from 'react';
 import { Handle, Position } from '@xyflow/react';
+import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+
+export type NodeExecutionStatus = 'idle' | 'running' | 'completed' | 'failed';
 
 interface BaseNodeProps {
   children: ReactNode;
@@ -8,6 +11,7 @@ interface BaseNodeProps {
   selected?: boolean;
   hasInput?: boolean;
   hasOutput?: boolean;
+  executionStatus?: NodeExecutionStatus;
 }
 
 export const BaseNode = memo(function BaseNode({
@@ -16,16 +20,28 @@ export const BaseNode = memo(function BaseNode({
   selected = false,
   hasInput = true,
   hasOutput = true,
+  executionStatus,
 }: BaseNodeProps) {
+  const borderColor = executionStatus === 'running'
+    ? '#3B82F6'
+    : executionStatus === 'completed'
+    ? '#22C55E'
+    : executionStatus === 'failed'
+    ? '#EF4444'
+    : color;
+
   return (
     <div
       role="group"
       aria-selected={selected}
       className={cn(
-        'min-w-[180px] rounded-lg border-2 bg-card shadow-md transition-shadow',
-        selected && 'ring-2 ring-primary ring-offset-2'
+        'relative min-w-[180px] rounded-lg border-2 bg-card shadow-md transition-all duration-300',
+        selected && 'ring-2 ring-primary ring-offset-2',
+        executionStatus === 'running' && 'animate-pulse shadow-blue-200 shadow-lg',
+        executionStatus === 'completed' && 'shadow-green-200 shadow-lg',
+        executionStatus === 'failed' && 'shadow-red-200 shadow-lg',
       )}
-      style={{ borderColor: color }}
+      style={{ borderColor }}
     >
       {hasInput && (
         <Handle
@@ -35,6 +51,24 @@ export const BaseNode = memo(function BaseNode({
         />
       )}
       {children}
+      {executionStatus && executionStatus !== 'idle' && (
+        <div className={cn(
+          'absolute -top-2 -right-2 rounded-full p-0.5',
+          executionStatus === 'running' && 'bg-blue-500',
+          executionStatus === 'completed' && 'bg-green-500',
+          executionStatus === 'failed' && 'bg-red-500',
+        )}>
+          {executionStatus === 'running' && (
+            <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+          )}
+          {executionStatus === 'completed' && (
+            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+          )}
+          {executionStatus === 'failed' && (
+            <XCircle className="w-3.5 h-3.5 text-white" />
+          )}
+        </div>
+      )}
       {hasOutput && (
         <Handle
           type="source"

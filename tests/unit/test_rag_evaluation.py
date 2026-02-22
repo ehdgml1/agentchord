@@ -1,13 +1,13 @@
 """Tests for RAG evaluation metrics."""
 import pytest
-from agentweave.rag.evaluation.metrics import (
+from agentchord.rag.evaluation.metrics import (
     AnswerRelevancy,
     ContextRelevancy,
     Faithfulness,
     MetricResult,
 )
-from agentweave.rag.evaluation.evaluator import EvaluationResult, RAGEvaluator
-from agentweave.rag.types import RAGResponse, RetrievalResult
+from agentchord.rag.evaluation.evaluator import EvaluationResult, RAGEvaluator
+from agentchord.rag.types import RAGResponse, RetrievalResult
 from tests.conftest import MockLLMProvider
 
 

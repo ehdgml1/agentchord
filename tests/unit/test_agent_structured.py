@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from pydantic import BaseModel, Field
 
-from agentweave import Agent
-from agentweave.core.structured import OutputSchema
-from agentweave.core.types import LLMResponse, Usage, MessageRole
-from agentweave.llm.base import BaseLLMProvider
+from agentchord import Agent
+from agentchord.core.structured import OutputSchema
+from agentchord.core.types import LLMResponse, Usage, MessageRole
+from agentchord.llm.base import BaseLLMProvider
 
 
 class AnalysisResult(BaseModel):

@@ -20,10 +20,10 @@ import sys
 import uuid
 from pathlib import Path
 
-# Add agentweave to path
-_agentweave_root = str(Path(__file__).resolve().parent.parent.parent.parent)
-if _agentweave_root not in sys.path:
-    sys.path.insert(0, _agentweave_root)
+# Add agentchord to path
+_agentchord_root = str(Path(__file__).resolve().parent.parent.parent.parent)
+if _agentchord_root not in sys.path:
+    sys.path.insert(0, _agentchord_root)
 
 # Import app modules
 from app.db.database import Base

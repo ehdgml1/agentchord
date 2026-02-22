@@ -39,7 +39,7 @@ export const AuthPage = memo(function AuthPage() {
     <div className="min-h-screen w-full flex items-center justify-center bg-muted/30">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">AgentWeave</CardTitle>
+          <CardTitle className="text-2xl">AgentChord</CardTitle>
           <CardDescription>
             {mode === 'login'
               ? 'Sign in to your account to continue'

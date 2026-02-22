@@ -44,7 +44,7 @@ export const CodePanel = memo(function CodePanel({ className }: CodePanelProps) 
       <div className="flex items-center justify-between px-4 h-10 border-b border-gray-700">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Python Code</span>
-          <span className="text-xs text-gray-400">(AgentWeave)</span>
+          <span className="text-xs text-gray-400">(AgentChord)</span>
         </div>
         <div className="flex items-center gap-1">
           <Button

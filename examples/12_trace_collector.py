@@ -13,9 +13,9 @@ from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
 
-from agentweave import Agent, TraceCollector
-from agentweave.llm.base import BaseLLMProvider
-from agentweave.core.types import LLMResponse, Message, StreamChunk, Usage
+from agentchord import Agent, TraceCollector
+from agentchord.llm.base import BaseLLMProvider
+from agentchord.core.types import LLMResponse, Message, StreamChunk, Usage
 
 
 class MockProvider(BaseLLMProvider):
@@ -124,7 +124,7 @@ async def main():
         print(f"\nSaved last trace to: {json_path}")
 
     # Export all traces to JSONL
-    from agentweave.telemetry.collector import export_traces_jsonl
+    from agentchord.telemetry.collector import export_traces_jsonl
     jsonl_path = output_dir / "all_traces.jsonl"
     export_traces_jsonl(traces, jsonl_path)
     print(f"Exported all traces to: {jsonl_path}")

@@ -26,16 +26,16 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
-# AgentWeave resilience imports
+# AgentChord resilience imports
 import sys
 from pathlib import Path
-# Add agentweave package to path (parent of visual-builder)
-_agentweave_root = str(Path(__file__).resolve().parent.parent.parent.parent.parent)
-if _agentweave_root not in sys.path:
-    sys.path.insert(0, _agentweave_root)
-from agentweave.resilience.circuit_breaker import CircuitBreaker, CircuitOpenError
-from agentweave.resilience.timeout import TimeoutManager
-from agentweave.resilience.retry import RetryPolicy, RetryStrategy
+# Add agentchord package to path (parent of visual-builder)
+_agentchord_root = str(Path(__file__).resolve().parent.parent.parent.parent.parent)
+if _agentchord_root not in sys.path:
+    sys.path.insert(0, _agentchord_root)
+from agentchord.resilience.circuit_breaker import CircuitBreaker, CircuitOpenError
+from agentchord.resilience.timeout import TimeoutManager
+from agentchord.resilience.retry import RetryPolicy, RetryStrategy
 
 from .mcp_manager import MCPManager
 from .secret_store import SecretStore
@@ -73,6 +73,24 @@ class _HashEmbeddingProvider:
     async def embed_batch(self, texts: list[str]) -> list[list[float]]:
         """Generate hash-based embeddings for batch of texts."""
         return [await self.embed(t) for t in texts]
+
+
+class _MultiAgentEventCollector:
+    """Collects per-agent orchestration events for SSE inclusion.
+
+    Implements the same ``async emit(event_type, **kwargs)`` interface
+    expected by AgentTeam's ``callbacks`` parameter so it can be used as
+    a lightweight drop-in for CallbackManager.  Events are accumulated
+    in a list and attached to the node result dict so that SSE consumers
+    receive a complete per-agent timeline when ``node_completed`` fires.
+    """
+
+    def __init__(self) -> None:
+        self.events: list[dict[str, Any]] = []
+
+    async def emit(self, event_type: str, **kwargs: Any) -> None:
+        """Record an orchestration event."""
+        self.events.append({"type": event_type, **kwargs})
 
 
 class ExecutionStatus(str, Enum):
@@ -256,7 +274,7 @@ class WorkflowExecutor:
     VALID_MODES = {"full", "mock", "debug"}
 
     # Template engine pattern
-    TEMPLATE_PATTERN = re.compile(r'\{\{(\w+(?:\.\w+)*)\}\}')
+    TEMPLATE_PATTERN = re.compile(r'\{\{([\w-]+(?:\.[\w-]+)*)\}\}')
 
     def __init__(
         self,
@@ -301,6 +319,7 @@ class WorkflowExecutor:
         trigger_id: str | None = None,
         start_from_node: str | None = None,
         context: dict[str, Any] | None = None,
+        event_emitter: Any | None = None,
     ) -> WorkflowExecution:
         """Execute workflow.
 
@@ -312,6 +331,7 @@ class WorkflowExecutor:
             trigger_id: ID of schedule/webhook that triggered.
             start_from_node: Resume from this node (for recovery).
             context: Existing context (for recovery).
+            event_emitter: Optional BackgroundExecutionManager for SSE events.
 
         Returns:
             Execution result.
@@ -319,6 +339,11 @@ class WorkflowExecutor:
         Raises:
             WorkflowValidationError: If workflow is invalid.
         """
+        # Store event emitter for per-node SSE emission
+        self._event_emitter = event_emitter
+        self._sse_execution_id = None
+        if event_emitter:
+            self._sse_execution_id = context.get("_execution_id") if context else None
         # Validate workflow
         self._validate_workflow(workflow)
 
@@ -339,9 +364,16 @@ class WorkflowExecutor:
 
         ctx: dict[str, Any] = context or {"input": input}
 
+        # Add current date/time to context for agent prompts
+        ctx["today"] = datetime.now(UTC).strftime("%Y-%m-%d")
+        ctx["now"] = datetime.now(UTC).isoformat()
+
         try:
             # Get execution order
             ordered_nodes = self._topological_sort(workflow)
+
+            # Store edges for auto-chaining in _resolve_input
+            self._current_edges = workflow.edges
 
             # Build adjacency map for parallel/condition routing
             adjacency: dict[str, list[str]] = {n.id: [] for n in workflow.nodes}
@@ -498,7 +530,10 @@ class WorkflowExecutor:
                 if node.type == "feedback_loop" and node_result.status == ExecutionStatus.COMPLETED:
                     output = node_result.output
                     if isinstance(output, dict) and output.get("continue_loop"):
+                        # Auto-detect loop body start from adjacency (outgoing edges)
                         loop_body_id = node.data.get("loopBodyStart")
+                        if not loop_body_id and adjacency.get(node.id):
+                            loop_body_id = adjacency[node.id][0]
                         if loop_body_id:
                             # Find the loop body nodes between loopBodyStart and this feedback node
                             loop_body_nodes = self._get_loop_body_nodes(
@@ -539,6 +574,13 @@ class WorkflowExecutor:
 
         # Clean up cancellation tracking (M5 fix)
         self._cancelled.discard(execution.id)
+
+        # Clean up edges reference
+        self._current_edges = None
+
+        # Clean up event emitter
+        self._event_emitter = None
+        self._sse_execution_id = None
 
         return execution
 
@@ -735,6 +777,15 @@ class WorkflowExecutor:
 
         return False
 
+    def _emit_node_event(
+        self, execution_id: str, event_type: str, node_id: str, node_type: str, **extra: Any
+    ) -> None:
+        """Emit per-node execution event via SSE if emitter available."""
+        if self._event_emitter and hasattr(self._event_emitter, '_emit'):
+            sse_id = self._sse_execution_id or execution_id
+            data = {"node_id": node_id, "node_type": node_type, **extra}
+            self._event_emitter._emit(sse_id, event_type, data)
+
     async def _execute_node_with_retry(
         self,
         execution_id: str,
@@ -757,6 +808,8 @@ class WorkflowExecutor:
         retry_count = 0
         last_error: str | None = None
 
+        self._emit_node_event(execution_id, "node_started", node.id, node.type)
+
         for attempt in range(self.MAX_NODE_RETRIES + 1):
             try:
                 # Get appropriate timeout
@@ -771,6 +824,10 @@ class WorkflowExecutor:
                 completed_at = datetime.now(UTC).replace(tzinfo=None)
                 duration_ms = int((completed_at - started_at).total_seconds() * 1000)
 
+                self._emit_node_event(
+                    execution_id, "node_completed", node.id, node.type,
+                    status="completed", duration_ms=duration_ms,
+                )
                 return NodeExecution(
                     node_id=node.id,
                     status=ExecutionStatus.COMPLETED,
@@ -783,6 +840,10 @@ class WorkflowExecutor:
                 )
 
             except asyncio.TimeoutError:
+                self._emit_node_event(
+                    execution_id, "node_completed", node.id, node.type,
+                    status="timed_out",
+                )
                 return NodeExecution(
                     node_id=node.id,
                     status=ExecutionStatus.TIMED_OUT,
@@ -794,6 +855,10 @@ class WorkflowExecutor:
 
             except CircuitOpenError as e:
                 # Don't retry if circuit is open
+                self._emit_node_event(
+                    execution_id, "node_completed", node.id, node.type,
+                    status="failed", error=str(e),
+                )
                 return NodeExecution(
                     node_id=node.id,
                     status=ExecutionStatus.FAILED,
@@ -817,6 +882,10 @@ class WorkflowExecutor:
                     await asyncio.sleep(delay)
 
         # All retries exhausted
+        self._emit_node_event(
+            execution_id, "node_completed", node.id, node.type,
+            status="failed", error=last_error,
+        )
         return NodeExecution(
             node_id=node.id,
             status=ExecutionStatus.FAILED,
@@ -869,8 +938,8 @@ class WorkflowExecutor:
         context: dict[str, Any],
     ) -> str:
         """Execute agent node using real LLM provider."""
-        from agentweave import Agent
-        from agentweave.llm.base import BaseLLMProvider
+        from agentchord import Agent
+        from agentchord.llm.base import BaseLLMProvider
         from app.config import get_settings
 
         settings = get_settings()
@@ -881,7 +950,57 @@ class WorkflowExecutor:
 
         # Determine model and create provider with API key from config
         model = data.get("model", settings.default_llm_model)
-        provider = self._create_llm_provider(model, settings)
+        provider = await self._create_llm_provider(model, settings, user_id=context.get("_user_id"))
+
+        # Build system prompt with optional structured output instructions
+        system_prompt = data.get("systemPrompt") or ""
+
+        # Append tool usage instructions when tools are available
+        if tools:
+            tool_names = ", ".join(t.name for t in tools)
+            system_prompt = (
+                system_prompt.rstrip()
+                + f"\n\nYou have access to these tools: {tool_names}. "
+                + "You MUST use these tools to fulfill the user's request. "
+                + "Always call the appropriate tool before responding with text."
+            )
+
+        output_fields = data.get("outputFields", [])
+        if output_fields:
+            field_descriptions = []
+            for field in output_fields:
+                fname = field.get("name", "")
+                ftype = field.get("type", "text")
+                fdesc = field.get("description", "")
+                if not fname:
+                    continue
+                type_map = {"text": "string", "number": "number", "boolean": "boolean", "list": "array"}
+                type_str = type_map.get(ftype, "string")
+                if fdesc:
+                    field_descriptions.append(f'  "{fname}": {type_str}  // {fdesc}')
+                else:
+                    field_descriptions.append(f'  "{fname}": {type_str}')
+            if field_descriptions:
+                schema_hint = "{\n" + ",\n".join(field_descriptions) + "\n}"
+                system_prompt = (
+                    system_prompt.rstrip()
+                    + "\n\nYou MUST respond with ONLY a valid JSON object in this exact format:\n"
+                    + schema_hint
+                    + "\nDo not include any text before or after the JSON. For text fields, write full sentences or paragraphs as needed."
+                )
+
+        # Inject multi-turn conversation history if available
+        chat_history = context.get("chat_history", [])
+        memory = None
+        if chat_history:
+            from agentchord.memory.conversation import ConversationMemory
+            from agentchord.memory.base import MemoryEntry
+            memory = ConversationMemory(max_entries=50)
+            for msg in chat_history:
+                role = msg.get("role", "user")
+                content = msg.get("content", "")
+                if content:
+                    memory.add(MemoryEntry(content=content, role=role))
 
         agent = Agent(
             name=data.get("name", "Agent"),
@@ -890,14 +1009,34 @@ class WorkflowExecutor:
             temperature=data.get("temperature", settings.llm_temperature),
             max_tokens=data.get("maxTokens", settings.llm_max_tokens),
             timeout=settings.llm_timeout,
-            system_prompt=data.get("systemPrompt"),
+            system_prompt=system_prompt or None,
             tools=tools or None,
             llm_provider=provider,
+            memory=memory,
         )
 
         # Get input from previous node or workflow input
         input_text = self._resolve_input(node, context)
         result = await agent.run(input_text)
+
+        # Parse structured output if outputFields defined
+        output = result.output
+        if output_fields and isinstance(output, str):
+            import json
+            try:
+                # Try to extract JSON from response (may have markdown wrapping)
+                text = output.strip()
+                if text.startswith("```"):
+                    # Remove markdown code blocks
+                    lines = text.split("\n")
+                    text = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+                    text = text.strip()
+                parsed = json.loads(text)
+                if isinstance(parsed, dict):
+                    output = parsed
+            except (json.JSONDecodeError, ValueError):
+                # If parsing fails, return raw text - don't break the flow
+                pass
 
         # Store usage info in context for tracking
         if result.usage:
@@ -909,7 +1048,7 @@ class WorkflowExecutor:
                 "model": model,
             }
 
-        return result.output
+        return output
 
     async def _run_rag(
         self,
@@ -932,17 +1071,23 @@ class WorkflowExecutor:
         Returns:
             Dict with output, query, sources, chunks, retrievalTimeMs.
         """
-        from agentweave.rag.pipeline import RAGPipeline
-        from agentweave.rag.types import Document
-        from agentweave.rag.vectorstore.in_memory import InMemoryVectorStore
-        from agentweave.rag.chunking.recursive import RecursiveCharacterChunker
+        from agentchord.rag.pipeline import RAGPipeline
+        from agentchord.rag.types import Document
+        from agentchord.rag.vectorstore.in_memory import InMemoryVectorStore
+        from agentchord.rag.chunking.recursive import RecursiveCharacterChunker
         from app.config import get_settings
 
         settings = get_settings()
         data = node.data or {}
 
         # Get query from upstream input
-        query = self._resolve_input(node, context)
+        # If inputTemplate is set, _resolve_input handles it via template engine.
+        # Otherwise, try to extract a meaningful query from structured upstream output.
+        input_template = data.get("inputTemplate")
+        if input_template:
+            query = self._resolve_input(node, context)
+        else:
+            query = self._extract_rag_query(node, context)
         if not query or not query.strip():
             return {
                 "output": "No query provided to RAG node.",
@@ -955,10 +1100,16 @@ class WorkflowExecutor:
         try:
             # Create LLM provider for generation
             model = data.get("model") or settings.default_llm_model
-            llm_provider = self._create_llm_provider(model, settings)
+            llm_provider = await self._create_llm_provider(model, settings, user_id=context.get("_user_id"))
 
             # Create embedding provider from config
-            embedding = self._create_embedding_provider(settings)
+            embedding = await self._create_embedding_provider(
+                settings,
+                user_id=context.get("_user_id"),
+                provider=data.get("embeddingProvider"),
+                model=data.get("embeddingModel"),
+                dimensions=data.get("embeddingDimensions"),
+            )
 
             # Build pipeline
             pipeline = RAGPipeline(
@@ -974,16 +1125,32 @@ class WorkflowExecutor:
                 system_prompt=data.get("systemPrompt") or None,
             )
 
-            # Ingest documents
-            documents = data.get("documents", [])
-            if documents:
-                docs = [
-                    Document(id=f"doc-{i}", content=doc_text)
-                    for i, doc_text in enumerate(documents)
-                    if doc_text and doc_text.strip()
-                ]
-                if docs:
-                    await pipeline.ingest_documents(docs)
+            # Ingest documents (inline text + uploaded files)
+            docs = []
+
+            # 1) Inline text documents (backward compatible)
+            inline_documents = data.get("documents", [])
+            for i, doc_text in enumerate(inline_documents):
+                if doc_text and doc_text.strip():
+                    docs.append(Document(id=f"inline-{i}", content=doc_text))
+
+            # 2) Uploaded file documents
+            file_refs = data.get("documentFiles", [])
+            if file_refs:
+                from app.services.document_service import DocumentService
+                doc_service = DocumentService(settings.upload_dir)
+                user_id = context.get("_user_id", "anonymous")
+                for file_ref in file_refs:
+                    file_id = file_ref.get("id") if isinstance(file_ref, dict) else file_ref
+                    if file_id:
+                        try:
+                            loaded = await doc_service.load_as_documents(user_id, file_id)
+                            docs.extend(loaded)
+                        except FileNotFoundError:
+                            logger.warning("Document file %s not found, skipping", file_id)
+
+            if docs:
+                await pipeline.ingest_documents(docs)
 
             # Query
             async with pipeline:
@@ -1022,7 +1189,7 @@ class WorkflowExecutor:
     ) -> dict[str, Any]:
         """Execute a multi-agent team node.
 
-        Uses AgentWeave's AgentTeam to coordinate multiple agents.
+        Uses AgentChord's AgentTeam to coordinate multiple agents.
 
         Node data fields:
             name: str - Team name
@@ -1031,19 +1198,34 @@ class WorkflowExecutor:
             maxRounds: int - Maximum orchestration rounds (default 10)
 
         Returns:
-            Dict with output, strategy, rounds, totalCost, totalTokens, agentOutputs, messageCount.
+            Dict with output, strategy, rounds, totalCost, totalTokens, agentOutputs,
+            messageCount, agentEvents.
         """
-        from agentweave import Agent, AgentTeam
+        from agentchord import Agent, AgentTeam
+        from agentchord.orchestration.types import TeamMember, TeamRole
         from app.config import get_settings
 
         settings = get_settings()
         data = node.data if isinstance(node.data, dict) else {}
 
+        # Role string -> TeamRole enum mapping
+        _role_map = {
+            "coordinator": TeamRole.COORDINATOR,
+            "worker": TeamRole.WORKER,
+            "reviewer": TeamRole.REVIEWER,
+            "specialist": TeamRole.SPECIALIST,
+        }
+
         # Build agents from member configs
         agents = []
         for member_config in data.get("members", []):
             model = member_config.get("model", settings.default_llm_model)
-            provider = self._create_llm_provider(model, settings)
+            provider = await self._create_llm_provider(model, settings, user_id=context.get("_user_id"))
+
+            # Build MCP tools for this member if specified
+            member_tools = await self._build_agent_tools(
+                member_config.get("mcpTools", [])
+            )
 
             agent = Agent(
                 name=member_config.get("name", "agent"),
@@ -1051,6 +1233,7 @@ class WorkflowExecutor:
                 model=model,
                 temperature=member_config.get("temperature", 0.7),
                 system_prompt=member_config.get("systemPrompt", ""),
+                tools=member_tools or None,
                 llm_provider=provider,
             )
             agents.append(agent)
@@ -1062,18 +1245,58 @@ class WorkflowExecutor:
         strategy = data.get("strategy", "coordinator")
         max_rounds = data.get("maxRounds", 10)
 
+        # Resolve coordinator agent if coordinatorId is specified
+        coordinator_id = data.get("coordinatorId")
+        coordinator_agent = None
+        if coordinator_id:
+            for a in agents:
+                if a.name == coordinator_id:
+                    coordinator_agent = a
+                    break
+
+        # Collect per-agent orchestration events for SSE inclusion
+        event_collector = _MultiAgentEventCollector()
+
         team = AgentTeam(
             name=data.get("name", "team"),
             members=agents,
+            coordinator=coordinator_agent,
             strategy=strategy,
             max_rounds=max_rounds,
+            callbacks=event_collector,
+            enable_consult=data.get("enableConsult", False),
+            max_consult_depth=data.get("maxConsultDepth", 1),
         )
+
+        # Patch TeamMember metadata (role, capabilities) from member configs
+        for member_config in data.get("members", []):
+            member_name = member_config.get("name", "agent")
+            role_str = member_config.get("role", "worker")
+            capabilities = member_config.get("capabilities", [])
+            for tm in team._members:
+                if tm.name == member_name:
+                    tm.role = _role_map.get(role_str, TeamRole.WORKER)
+                    tm.capabilities = capabilities
+                    break
 
         # Resolve input from context
         input_text = self._resolve_input(node, context)
 
         try:
             result = await team.run(input_text)
+
+            # Enforce cost budget
+            cost_budget = data.get("costBudget", 0)
+            budget_exceeded = bool(
+                cost_budget and cost_budget > 0 and result.total_cost > cost_budget
+            )
+            if budget_exceeded:
+                logger.warning(
+                    "Multi-agent team '%s' exceeded cost budget: $%.4f > $%.4f",
+                    data.get("name", "team"),
+                    result.total_cost,
+                    cost_budget,
+                )
 
             # Store token usage
             # Note: Multi-agent aggregation doesn't track prompt/completion separately
@@ -1091,22 +1314,26 @@ class WorkflowExecutor:
                 "rounds": result.rounds,
                 "totalCost": result.total_cost,
                 "totalTokens": result.total_tokens,
+                "budgetExceeded": budget_exceeded,
                 "agentOutputs": {
                     name: {"output": ao.output, "tokens": ao.tokens, "cost": ao.cost}
                     for name, ao in result.agent_outputs.items()
                 },
                 "messageCount": len(result.messages),
+                "agentEvents": event_collector.events,
             }
         finally:
             await team.close()
 
-    @staticmethod
-    def _create_llm_provider(model: str, settings) -> "BaseLLMProvider":
-        """Create LLM provider with API key from application config.
+    async def _create_llm_provider(self, model: str, settings, user_id: str | None = None) -> "BaseLLMProvider":
+        """Create LLM provider with API key fallback.
+
+        Priority: settings (env var) → user DB key → ValueError
 
         Args:
             model: Model identifier (e.g., 'gpt-4o', 'claude-3-5-sonnet').
             settings: Application settings with API keys.
+            user_id: Optional user ID for DB key lookup.
 
         Returns:
             Configured LLM provider.
@@ -1115,45 +1342,59 @@ class WorkflowExecutor:
             ValueError: If no API key configured for the detected provider.
         """
         if model.startswith(("gpt-", "o1", "o3", "o4", "text-")):
-            if not settings.openai_api_key:
+            api_key = settings.openai_api_key
+            if not api_key and user_id:
+                api_key = await self.secret_store.get("LLM_OPENAI_API_KEY", owner_id=user_id)
+            if not api_key:
                 raise ValueError(
-                    f"OpenAI API key not configured. Set OPENAI_API_KEY to use model '{model}'."
+                    f"OpenAI API key not configured. Set OPENAI_API_KEY or add key in LLM Settings to use model '{model}'."
                 )
-            from agentweave.llm.openai import OpenAIProvider
+            from agentchord.llm.openai import OpenAIProvider
             return OpenAIProvider(
                 model=model,
-                api_key=settings.openai_api_key,
+                api_key=api_key,
                 base_url=settings.openai_base_url or None,
                 timeout=settings.llm_timeout,
             )
         elif model.startswith("claude-"):
-            if not settings.anthropic_api_key:
+            api_key = settings.anthropic_api_key
+            if not api_key and user_id:
+                api_key = await self.secret_store.get("LLM_ANTHROPIC_API_KEY", owner_id=user_id)
+            if not api_key:
                 raise ValueError(
-                    f"Anthropic API key not configured. Set ANTHROPIC_API_KEY to use model '{model}'."
+                    f"Anthropic API key not configured. Set ANTHROPIC_API_KEY or add key in LLM Settings to use model '{model}'."
                 )
-            from agentweave.llm.anthropic import AnthropicProvider
+            from agentchord.llm.anthropic import AnthropicProvider
             return AnthropicProvider(
                 model=model,
-                api_key=settings.anthropic_api_key,
+                api_key=api_key,
                 timeout=settings.llm_timeout,
             )
         elif model.startswith("gemini"):
-            if not settings.gemini_api_key:
+            api_key = settings.gemini_api_key
+            if not api_key and user_id:
+                api_key = await self.secret_store.get("LLM_GEMINI_API_KEY", owner_id=user_id)
+            if not api_key:
                 raise ValueError(
-                    f"Gemini API key not configured. Set GEMINI_API_KEY to use model '{model}'."
+                    f"Gemini API key not configured. Set GEMINI_API_KEY or add key in LLM Settings to use model '{model}'."
                 )
-            from agentweave.llm.gemini import GeminiProvider
+            from agentchord.llm.gemini import GeminiProvider
             return GeminiProvider(
                 model=model,
-                api_key=settings.gemini_api_key,
+                api_key=api_key,
                 timeout=settings.llm_timeout,
             )
         elif model in ("llama3.1", "llama3.1:70b", "llama3.2", "llama3.3", "mistral", "codellama", "qwen2.5", "deepseek-r1", "phi-4", "gemma2") or model.startswith("ollama/"):
-            from agentweave.llm.ollama import OllamaProvider
+            from agentchord.llm.ollama import OllamaProvider
             actual_model = model.replace("ollama/", "")
+            base_url = settings.ollama_base_url
+            if user_id:
+                user_url = await self.secret_store.get("LLM_OLLAMA_BASE_URL", owner_id=user_id)
+                if user_url:
+                    base_url = user_url
             return OllamaProvider(
                 model=actual_model,
-                base_url=settings.ollama_base_url,
+                base_url=base_url,
                 timeout=settings.llm_timeout,
             )
         else:
@@ -1162,38 +1403,85 @@ class WorkflowExecutor:
                 f"gemini-* for Gemini, or use 'ollama/<model>' prefix for Ollama."
             )
 
-    @staticmethod
-    def _create_embedding_provider(settings) -> "EmbeddingProvider":
-        """Create embedding provider with API key from application config.
-
-        Falls back to hash-based embedding if no API key is configured.
+    async def _create_embedding_provider(
+        self,
+        settings,
+        user_id: str | None = None,
+        provider: str | None = None,
+        model: str | None = None,
+        dimensions: int | None = None,
+    ) -> "EmbeddingProvider":
+        """Create embedding provider with per-node override and user key fallback.
 
         Args:
             settings: Application settings with API keys and embedding config.
+            user_id: Optional user ID for DB key lookup.
+            provider: Override embedding provider (per-node).
+            model: Override embedding model (per-node).
+            dimensions: Override embedding dimensions (per-node).
 
         Returns:
             Configured embedding provider or hash-based fallback.
         """
-        provider = settings.embedding_provider.lower()
+        prov = (provider or settings.embedding_provider).lower()
+        mdl = model or settings.embedding_model
+        dims = dimensions or settings.embedding_dimensions
 
-        if provider == "openai":
-            if not settings.openai_api_key:
+        if prov == "openai":
+            api_key = settings.openai_api_key
+            if not api_key and user_id:
+                api_key = await self.secret_store.get("LLM_OPENAI_API_KEY", owner_id=user_id)
+            if not api_key:
+                # Try Gemini as fallback
+                gemini_key = settings.gemini_api_key
+                if not gemini_key and user_id:
+                    gemini_key = await self.secret_store.get("LLM_GEMINI_API_KEY", owner_id=user_id)
+                if gemini_key:
+                    logger.info(
+                        "OpenAI API key not configured. Using Gemini embeddings instead."
+                    )
+                    from agentchord.rag.embeddings.gemini import GeminiEmbeddings
+                    return GeminiEmbeddings(
+                        model="gemini-embedding-001",
+                        api_key=gemini_key,
+                        dimensions=3072,
+                    )
                 logger.warning(
                     "OpenAI API key not configured. Falling back to hash-based embedding."
                 )
                 return _HashEmbeddingProvider()
-            from agentweave.rag.embeddings.openai import OpenAIEmbeddings
+            from agentchord.rag.embeddings.openai import OpenAIEmbeddings
             return OpenAIEmbeddings(
-                model=settings.embedding_model,
-                api_key=settings.openai_api_key,
-                dimensions=settings.embedding_dimensions,
+                model=mdl,
+                api_key=api_key,
+                dimensions=dims,
             )
-        elif provider == "ollama":
-            from agentweave.rag.embeddings.ollama import OllamaEmbeddings
+        elif prov == "gemini":
+            api_key = settings.gemini_api_key
+            if not api_key and user_id:
+                api_key = await self.secret_store.get("LLM_GEMINI_API_KEY", owner_id=user_id)
+            if not api_key:
+                logger.warning(
+                    "Gemini API key not configured. Falling back to hash-based embedding."
+                )
+                return _HashEmbeddingProvider()
+            from agentchord.rag.embeddings.gemini import GeminiEmbeddings
+            return GeminiEmbeddings(
+                model=mdl,
+                api_key=api_key,
+                dimensions=dims,
+            )
+        elif prov == "ollama":
+            from agentchord.rag.embeddings.ollama import OllamaEmbeddings
+            base_url = settings.ollama_base_url
+            if user_id:
+                user_url = await self.secret_store.get("LLM_OLLAMA_BASE_URL", owner_id=user_id)
+                if user_url:
+                    base_url = user_url
             return OllamaEmbeddings(
-                model=settings.embedding_model,
-                base_url=settings.ollama_base_url,
-                dimensions=settings.embedding_dimensions,
+                model=mdl,
+                base_url=base_url,
+                dimensions=dims,
             )
         else:
             # "hash" or unknown provider -> fallback
@@ -1207,16 +1495,11 @@ class WorkflowExecutor:
         """Execute MCP tool node."""
         data = node.data
 
-        # Resolve secrets and templates in parameters
+        # Resolve secrets and templates in parameters (recursively for nested structures)
         parameters = data.get("parameters", {})
         resolved_params = {}
         for key, value in parameters.items():
-            if isinstance(value, str):
-                # First resolve templates, then secrets
-                resolved = self._resolve_template(value, context)
-                resolved_params[key] = await self.secret_store.resolve(resolved)
-            else:
-                resolved_params[key] = value
+            resolved_params[key] = await self._resolve_params_deep(value, context)
 
         # Execute tool
         result = await self.mcp_manager.execute_tool(
@@ -1225,7 +1508,18 @@ class WorkflowExecutor:
             arguments=resolved_params,
         )
 
-        return result
+        # Convert MCP content objects to serializable format
+        if isinstance(result, list):
+            texts = []
+            for item in result:
+                if hasattr(item, "text"):
+                    texts.append(item.text)
+                elif hasattr(item, "data"):
+                    texts.append(f"[binary: {getattr(item, 'type', 'unknown')}]")
+                else:
+                    texts.append(str(item))
+            return "\n".join(texts)
+        return str(result) if result is not None else ""
 
     async def _run_condition(
         self,
@@ -1305,7 +1599,7 @@ class WorkflowExecutor:
 
         data = node.data
         max_iterations = data.get("maxIterations", 10)
-        exit_condition = data.get("exitCondition", "false")
+        exit_condition = data.get("stopCondition", "false")
 
         # Get iteration count from context
         loop_key = f"_loop_{node.id}"
@@ -1320,7 +1614,16 @@ class WorkflowExecutor:
             }
 
         # Evaluate exit condition
-        prev_output = self._resolve_input(node, context)
+        # For condition evaluation, use raw output (preserves dict for field access like input.score)
+        # Find upstream node output
+        raw_output = context.get("input", "")
+        if hasattr(self, '_current_edges') and self._current_edges:
+            parent_ids = [e.source for e in self._current_edges if e.target == node.id]
+            if parent_ids and parent_ids[0] in context:
+                raw_output = context[parent_ids[0]]
+                # Extract .output field if dict, else use as-is
+                if isinstance(raw_output, dict):
+                    raw_output = raw_output.get("output", raw_output)
 
         # Build sanitized context - only expose public node outputs
         safe_context = {
@@ -1329,7 +1632,7 @@ class WorkflowExecutor:
         }
 
         safe_names: dict[str, Any] = {
-            "input": prev_output,
+            "input": raw_output,  # Raw value (dict/str/etc) - simpleeval handles field access
             "context": safe_context,
             "iteration": iteration,
             "true": True,
@@ -1363,11 +1666,18 @@ class WorkflowExecutor:
             "reason": "continuing",
         }
 
+    _BUILTIN_TOOL_IDS = {"web-search", "tavily"}
+
     async def _build_agent_tools(self, mcp_tool_ids: list[str]) -> list:
-        """Convert MCP tool IDs to agentweave Tool objects.
+        """Convert MCP tool IDs to agentchord Tool objects.
+
+        Supports three formats:
+            - "web-search" or "tavily" - built-in web search tool
+            - "serverId:toolName" - bind a specific tool from a server
+            - "serverId" (no colon) - bind ALL tools from that server
 
         Args:
-            mcp_tool_ids: List of "serverId:toolName" strings.
+            mcp_tool_ids: List of tool ID strings.
 
         Returns:
             List of Tool objects for the Agent.
@@ -1375,43 +1685,81 @@ class WorkflowExecutor:
         if not mcp_tool_ids:
             return []
 
-        from agentweave.tools.base import Tool, ToolParameter
-
         tools = []
         for tool_id in mcp_tool_ids:
-            parts = tool_id.split(":", 1)
-            if len(parts) != 2:
-                logger.warning("Invalid MCP tool ID format: %s (expected 'serverId:toolName')", tool_id)
-                continue
-
-            server_id, tool_name = parts
-
-            # Find MCPTool metadata
-            mcp_tool = self._find_mcp_tool(server_id, tool_name)
-            if not mcp_tool:
-                logger.warning("MCP tool not found: %s:%s", server_id, tool_name)
-                continue
-
-            # Convert JSON Schema parameters to ToolParameter list
-            params = self._schema_to_tool_params(mcp_tool.input_schema)
-
-            # Create wrapper function that calls MCP manager
-            # Use default args to capture server_id/tool_name in closure
-            async def mcp_func(
-                _sid: str = server_id,
-                _tn: str = tool_name,
-                **kwargs: Any,
-            ) -> Any:
-                return await self.mcp_manager.execute_tool(_sid, _tn, kwargs)
-
-            tools.append(Tool(
-                name=f"{server_id}__{tool_name}",
-                description=mcp_tool.description,
-                parameters=params,
-                func=mcp_func,
-            ))
+            if tool_id in self._BUILTIN_TOOL_IDS:
+                tool = self._create_builtin_tool(tool_id)
+                if tool:
+                    tools.append(tool)
+            elif ":" in tool_id:
+                # Specific tool: "serverId:toolName"
+                server_id, tool_name = tool_id.split(":", 1)
+                mcp_tool = self._find_mcp_tool(server_id, tool_name)
+                if not mcp_tool:
+                    logger.warning("MCP tool not found: %s:%s", server_id, tool_name)
+                    continue
+                tools.append(self._mcp_tool_to_agentchord_tool(mcp_tool))
+            else:
+                # Server-only ID: bind ALL tools from this server
+                server_id = tool_id
+                server_tools = self.mcp_manager._tools.get(server_id, [])
+                if not server_tools:
+                    logger.warning("No tools found for MCP server: %s", server_id)
+                    continue
+                for mcp_tool in server_tools:
+                    tools.append(self._mcp_tool_to_agentchord_tool(mcp_tool))
 
         return tools
+
+    def _create_builtin_tool(self, tool_id: str):
+        """Create a built-in tool by ID.
+
+        Args:
+            tool_id: Built-in tool identifier ("web-search", "tavily").
+
+        Returns:
+            Tool object or None if API key is not configured.
+        """
+        from app.config import get_settings
+
+        settings = get_settings()
+
+        if tool_id in ("web-search", "tavily"):
+            if not settings.tavily_api_key:
+                return None
+            from agentchord.tools.web_search import create_web_search_tool
+
+            return create_web_search_tool(api_key=settings.tavily_api_key)
+
+        return None
+
+    def _mcp_tool_to_agentchord_tool(self, mcp_tool) -> "Tool":
+        """Convert an MCPTool to an agentchord Tool object.
+
+        Args:
+            mcp_tool: MCPTool dataclass with server_id, name, description, input_schema.
+
+        Returns:
+            agentchord Tool object.
+        """
+        from agentchord.tools.base import Tool
+
+        params = self._schema_to_tool_params(mcp_tool.input_schema)
+
+        # Capture server_id/tool_name via default args to avoid closure issues
+        async def mcp_func(
+            _sid: str = mcp_tool.server_id,
+            _tn: str = mcp_tool.name,
+            **kwargs: Any,
+        ) -> Any:
+            return await self.mcp_manager.execute_tool(_sid, _tn, kwargs)
+
+        return Tool(
+            name=f"{mcp_tool.server_id}__{mcp_tool.name}",
+            description=mcp_tool.description,
+            parameters=params,
+            func=mcp_func,
+        )
 
     def _find_mcp_tool(self, server_id: str, tool_name: str):
         """Find an MCPTool by server_id and tool_name."""
@@ -1424,7 +1772,7 @@ class WorkflowExecutor:
     @staticmethod
     def _schema_to_tool_params(schema: dict[str, Any]) -> list:
         """Convert JSON Schema to ToolParameter list."""
-        from agentweave.tools.base import ToolParameter
+        from agentchord.tools.base import ToolParameter
 
         params = []
         properties = schema.get("properties", {})
@@ -1446,6 +1794,28 @@ class WorkflowExecutor:
     def _get_mock_output(self, node: WorkflowNode) -> Any:
         """Get mock output for node."""
         if node.type == "agent":
+            output_fields = node.data.get("outputFields", [])
+            if output_fields:
+                mock_data = {}
+                for field in output_fields:
+                    fname = field.get("name", "")
+                    ftype = field.get("type", "text")
+                    fdesc = field.get("description", "")
+                    if not fname:
+                        continue
+                    if ftype == "number":
+                        mock_data[fname] = 85
+                    elif ftype == "boolean":
+                        mock_data[fname] = True
+                    elif ftype == "list":
+                        mock_data[fname] = ["item1", "item2", "item3"]
+                    else:
+                        # Generate richer mock text for text fields
+                        if fdesc:
+                            mock_data[fname] = f"[Mock] {fdesc}. This is a detailed response that demonstrates multi-sentence output capability."
+                        else:
+                            mock_data[fname] = f"[Mock] {fname}: This is a detailed text response demonstrating that text fields can contain full sentences and paragraphs."
+                return mock_data
             return f"[Mock] Agent \'{node.data.get('name', 'Agent')}\' response"
         elif node.type == "mcp_tool":
             tool_name = node.data.get("toolName", "unknown")
@@ -1474,8 +1844,11 @@ class WorkflowExecutor:
                 "rounds": 1,
                 "totalCost": 0.0,
                 "totalTokens": 0,
+                "budgetExceeded": False,
+                "enableConsult": data.get("enableConsult", False),
                 "agentOutputs": {},
                 "messageCount": 0,
+                "agentEvents": [],
             }
         return None
 
@@ -1498,10 +1871,36 @@ class WorkflowExecutor:
             for key in path[1:]:
                 if isinstance(value, dict) and key in value:
                     value = value[key]
+                elif key == "output" and isinstance(value, dict):
+                    # Node output is a dict; serialize to JSON for .output access
+                    import json
+                    value = json.dumps(value, ensure_ascii=False)
+                elif key == "output" and isinstance(value, str):
+                    # Node output is a plain string; .output just references it
+                    pass  # value is already the node's output string
                 else:
                     return match.group(0)  # Can't traverse further
             return str(value)
         return self.TEMPLATE_PATTERN.sub(replacer, template)
+
+    async def _resolve_params_deep(
+        self, value: Any, context: dict[str, Any]
+    ) -> Any:
+        """Recursively resolve templates in nested parameter structures."""
+        if isinstance(value, str):
+            resolved = self._resolve_template(value, context)
+            return await self.secret_store.resolve(resolved)
+        elif isinstance(value, dict):
+            return {
+                k: await self._resolve_params_deep(v, context)
+                for k, v in value.items()
+            }
+        elif isinstance(value, list):
+            return [
+                await self._resolve_params_deep(item, context)
+                for item in value
+            ]
+        return value
 
     def _resolve_input(
         self,
@@ -1509,20 +1908,78 @@ class WorkflowExecutor:
         context: dict[str, Any],
     ) -> str:
         """Resolve input for node from context with template support."""
-        # Check for explicit inputSource
+        # 1. Check for explicit inputSource
         input_source = node.data.get("inputSource")
         if input_source and input_source in context:
             raw = str(context[input_source])
         else:
             raw = str(context.get("input", ""))
 
-        # Also check for inputTemplate in node data
+            # 2. Auto-detect upstream node output from edges (visual connection)
+            if not input_source and hasattr(self, '_current_edges') and self._current_edges:
+                parent_ids = [e.source for e in self._current_edges if e.target == node.id]
+                parent_outputs = []
+                for pid in parent_ids:
+                    if pid in context:
+                        val = context[pid]
+                        if isinstance(val, dict):
+                            # Extract output field if present, else stringify
+                            out = val.get("output", val)
+                            parent_outputs.append(str(out) if not isinstance(out, str) else out)
+                        elif val is not None:
+                            parent_outputs.append(str(val))
+                if parent_outputs:
+                    raw = "\n\n".join(parent_outputs)
+
+        # 3. Check for inputTemplate in node data
         input_template = node.data.get("inputTemplate")
         if input_template:
             return self._resolve_template(input_template, context)
 
         # Apply template resolution to raw input (in case it contains {{...}})
         return self._resolve_template(raw, context)
+
+    def _extract_rag_query(
+        self,
+        node: WorkflowNode,
+        context: dict[str, Any],
+    ) -> str:
+        """Extract a meaningful search query for RAG from upstream context.
+
+        When an upstream node produces structured output (a dict), this method
+        intelligently extracts the query text instead of stringifying the whole dict.
+
+        Priority:
+            1. Dict with 'query' field -> use that field value
+            2. Dict with 'output' field (string) -> use output
+            3. Dict -> JSON-serialize for readability
+            4. String -> use as-is
+
+        Falls back to _resolve_input() for non-structured cases.
+        """
+        # Check for upstream node dict outputs via edges
+        if hasattr(self, '_current_edges') and self._current_edges:
+            parent_ids = [e.source for e in self._current_edges if e.target == node.id]
+            for pid in parent_ids:
+                if pid not in context:
+                    continue
+                val = context[pid]
+                if isinstance(val, dict):
+                    # Priority 1: 'query' field in structured output
+                    if "query" in val and isinstance(val["query"], str) and val["query"].strip():
+                        return val["query"]
+                    # Priority 2: 'output' field that is a string
+                    if "output" in val and isinstance(val["output"], str) and val["output"].strip():
+                        return val["output"]
+                    # Priority 3: Readable JSON serialization
+                    import json
+                    try:
+                        return json.dumps(val, ensure_ascii=False, indent=None)
+                    except (TypeError, ValueError):
+                        return str(val)
+
+        # Fallback to standard input resolution
+        return self._resolve_input(node, context)
 
     def _get_node_timeout(self, node: WorkflowNode) -> float:
         """Get timeout for node type."""

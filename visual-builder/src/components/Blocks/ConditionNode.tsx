@@ -2,15 +2,18 @@ import { memo } from 'react';
 import { type NodeProps, Handle, Position } from '@xyflow/react';
 import { GitFork } from 'lucide-react';
 import { BaseNode } from './BaseNode';
+import { useNodeExecutionStatus } from '../../hooks/useNodeExecutionStatus';
 import type { ConditionBlockData } from '../../types/blocks';
 
 type ConditionNodeProps = NodeProps & {
   data: ConditionBlockData & { label?: string };
 };
 
-export const ConditionNode = memo(function ConditionNode({ data, selected }: ConditionNodeProps) {
+export const ConditionNode = memo(function ConditionNode({ id, data, selected }: ConditionNodeProps) {
+  const executionStatus = useNodeExecutionStatus(id);
+
   return (
-    <BaseNode color="#F59E0B" selected={selected} hasOutput={false}>
+    <BaseNode color="#F59E0B" selected={selected} hasOutput={false} executionStatus={executionStatus}>
       <div className="p-3">
         <div className="flex items-center gap-2 mb-2">
           <div className="p-1.5 rounded bg-amber-100">

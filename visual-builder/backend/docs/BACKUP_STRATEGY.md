@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the backup and recovery strategy for AgentWeave Visual Builder database (PostgreSQL in production, SQLite in development).
+This document outlines the backup and recovery strategy for AgentChord Visual Builder database (PostgreSQL in production, SQLite in development).
 
 ## Production Environment (PostgreSQL)
 
@@ -35,7 +35,7 @@ Archive script (`/usr/local/bin/archive_wal.sh`):
 # Archive WAL to S3/MinIO
 WAL_PATH=$1
 WAL_FILE=$2
-BUCKET="agentweave-backups"
+BUCKET="agentchord-backups"
 PREFIX="wal-archive/$(date +%Y-%m-%d)"
 
 # Copy to S3/MinIO
@@ -75,8 +75,8 @@ set -euo pipefail
 
 BACKUP_TYPE=${1:-daily}  # daily, weekly, monthly
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BUCKET="agentweave-backups"
-DB_NAME="${DATABASE_NAME:-agentweave}"
+BUCKET="agentchord-backups"
+DB_NAME="${DATABASE_NAME:-agentchord}"
 DB_USER="${DATABASE_USER:-postgres}"
 DB_HOST="${DATABASE_HOST:-localhost}"
 
@@ -126,7 +126,7 @@ echo "Backup completed: $BACKUP_FILE"
 **S3/MinIO Bucket Structure:**
 
 ```
-agentweave-backups/
+agentchord-backups/
 ├── dumps/
 │   ├── daily/       # 7 days retention
 │   ├── weekly/      # 4 weeks retention
@@ -171,51 +171,51 @@ agentweave-backups/
 3. Restore base backup:
    ```bash
    # Download and extract latest base backup
-   LATEST_BACKUP=$(aws s3 ls s3://agentweave-backups/dumps/daily/ \
+   LATEST_BACKUP=$(aws s3 ls s3://agentchord-backups/dumps/daily/ \
      --endpoint-url="${MINIO_ENDPOINT}" | sort -r | head -n 1 | awk '{print $4}')
 
-   aws s3 cp "s3://agentweave-backups/dumps/daily/$LATEST_BACKUP" /tmp/backup.sql.gz \
+   aws s3 cp "s3://agentchord-backups/dumps/daily/$LATEST_BACKUP" /tmp/backup.sql.gz \
      --endpoint-url="${MINIO_ENDPOINT}"
 
    # Restore using pg_restore
-   createdb -h localhost -U postgres agentweave
-   pg_restore -h localhost -U postgres -d agentweave -v /tmp/backup.sql.gz
+   createdb -h localhost -U postgres agentchord
+   pg_restore -h localhost -U postgres -d agentchord -v /tmp/backup.sql.gz
    ```
 
 4. Restore WAL archives (for PITR):
    ```bash
    # Download WAL files for specific timeframe
    TARGET_DATE="2026-02-15"
-   aws s3 sync "s3://agentweave-backups/wal-archive/$TARGET_DATE/" \
+   aws s3 sync "s3://agentchord-backups/wal-archive/$TARGET_DATE/" \
      /var/lib/postgresql/data/pg_wal/ \
      --endpoint-url="${MINIO_ENDPOINT}"
    ```
 
 5. Create recovery configuration (`recovery.conf` or `postgresql.auto.conf`):
    ```conf
-   restore_command = 'aws s3 cp s3://agentweave-backups/wal-archive/%f %p --endpoint-url=${MINIO_ENDPOINT}'
+   restore_command = 'aws s3 cp s3://agentchord-backups/wal-archive/%f %p --endpoint-url=${MINIO_ENDPOINT}'
    recovery_target_time = '2026-02-15 14:30:00 UTC'  # Optional: specific time
    ```
 
 6. Start PostgreSQL and verify:
    ```bash
    systemctl start postgresql
-   psql -U postgres -d agentweave -c "SELECT COUNT(*) FROM workflows;"
+   psql -U postgres -d agentchord -c "SELECT COUNT(*) FROM workflows;"
    ```
 
 #### Full Backup Restore (Simpler, No PITR)
 
 ```bash
 # Download specific backup
-aws s3 cp s3://agentweave-backups/dumps/daily/backup_daily_20260215_020000.sql.gz /tmp/restore.sql.gz \
+aws s3 cp s3://agentchord-backups/dumps/daily/backup_daily_20260215_020000.sql.gz /tmp/restore.sql.gz \
   --endpoint-url="${MINIO_ENDPOINT}"
 
 # Drop and recreate database
-dropdb -h localhost -U postgres agentweave
-createdb -h localhost -U postgres agentweave
+dropdb -h localhost -U postgres agentchord
+createdb -h localhost -U postgres agentchord
 
 # Restore
-pg_restore -h localhost -U postgres -d agentweave -v /tmp/restore.sql.gz
+pg_restore -h localhost -U postgres -d agentchord -v /tmp/restore.sql.gz
 ```
 
 ### Verification & Testing
@@ -235,8 +235,8 @@ Test script (`/usr/local/bin/test_restore.sh`):
 #!/bin/bash
 set -euo pipefail
 
-BUCKET="agentweave-backups"
-TEST_DB="agentweave_restore_test"
+BUCKET="agentchord-backups"
+TEST_DB="agentchord_restore_test"
 
 # Get latest monthly backup
 LATEST_BACKUP=$(aws s3 ls s3://$BUCKET/dumps/monthly/ \
@@ -296,13 +296,13 @@ find backups/ -name "tool_hub_*.db" -mtime +7 -delete
 
 ```bash
 # Stop application
-systemctl stop agentweave
+systemctl stop agentchord
 
 # Restore from specific backup
 cp backups/tool_hub_20260215.db tool_hub.db
 
 # Restart application
-systemctl start agentweave
+systemctl start agentchord
 ```
 
 ## Disaster Recovery RTO/RPO
@@ -334,7 +334,7 @@ Healthcheck script:
 
 ```bash
 #!/bin/bash
-LATEST_BACKUP_AGE=$(aws s3 ls s3://agentweave-backups/dumps/daily/ \
+LATEST_BACKUP_AGE=$(aws s3 ls s3://agentchord-backups/dumps/daily/ \
   --endpoint-url="${MINIO_ENDPOINT}" | sort -r | head -n 1 \
   | awk '{print $1" "$2}' | xargs -I {} date -d "{}" +%s)
 

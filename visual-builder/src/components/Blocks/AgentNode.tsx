@@ -1,7 +1,8 @@
 import { memo } from 'react';
 import { type NodeProps } from '@xyflow/react';
-import { Bot } from 'lucide-react';
+import { Bot, Wrench } from 'lucide-react';
 import { BaseNode } from './BaseNode';
+import { useNodeExecutionStatus } from '../../hooks/useNodeExecutionStatus';
 import type { AgentBlockData } from '../../types/blocks';
 import { MODELS } from '../../constants/models';
 
@@ -9,11 +10,12 @@ type AgentNodeProps = NodeProps & {
   data: AgentBlockData & { label?: string };
 };
 
-export const AgentNode = memo(function AgentNode({ data, selected }: AgentNodeProps) {
+export const AgentNode = memo(function AgentNode({ id, data, selected }: AgentNodeProps) {
   const modelInfo = MODELS[data.model];
+  const executionStatus = useNodeExecutionStatus(id);
 
   return (
-    <BaseNode color="#3B82F6" selected={selected}>
+    <BaseNode color="#3B82F6" selected={selected} executionStatus={executionStatus}>
       <div className="p-3" aria-label={`Agent node: ${data.name || 'Unnamed Agent'}`}>
         <div className="flex items-center gap-2 mb-2">
           <div className="p-1.5 rounded bg-blue-100">
@@ -31,6 +33,12 @@ export const AgentNode = memo(function AgentNode({ data, selected }: AgentNodePr
         {data.role && (
           <div className="text-xs text-muted-foreground line-clamp-2">
             {data.role}
+          </div>
+        )}
+        {data.mcpTools && data.mcpTools.length > 0 && (
+          <div className="flex items-center gap-1 text-xs text-blue-600">
+            <Wrench className="w-3 h-3" />
+            <span>{data.mcpTools.length} tool{data.mcpTools.length > 1 ? 's' : ''}</span>
           </div>
         )}
       </div>

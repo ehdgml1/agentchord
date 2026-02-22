@@ -5,7 +5,7 @@ Accepted
 
 ## Context
 
-AgentWeave workflows need to define execution order for multiple agents. We evaluated several approaches used by existing frameworks:
+AgentChord workflows need to define execution order for multiple agents. We evaluated several approaches used by existing frameworks:
 
 **Alternatives considered**:
 
@@ -181,6 +181,6 @@ If conditional logic becomes a frequent request, potential extensions:
 - Maintain backward compatibility with existing flows
 
 ## References
-- Implementation: `agentweave/core/workflow.py`, `agentweave/core/executor.py`
-- Tests: `agentweave/tests/unit/core/test_workflow.py` (43 tests), `agentweave/tests/integration/test_workflow_e2e.py` (16 tests)
+- Implementation: `agentchord/core/workflow.py`, `agentchord/core/executor.py`
+- Tests: `agentchord/tests/unit/core/test_workflow.py` (43 tests), `agentchord/tests/integration/test_workflow_e2e.py` (16 tests)
 - Comparison: LangGraph (400 LOC for graph state), CrewAI Process (3 modes), Prefect (DAG builder)

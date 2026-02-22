@@ -71,7 +71,10 @@ class BackgroundExecutionManager:
         """Run execution and track results."""
         try:
             result = await execution_fn()
-            self._emit(execution_id, "completed", {"status": "completed"})
+            completed_data = {"status": "completed"}
+            if isinstance(result, dict):
+                completed_data.update(result)
+            self._emit(execution_id, "completed", completed_data)
         except Exception as e:
             logger.exception("Background execution %s failed", execution_id)
             self._emit(execution_id, "failed", {"error": str(e)})

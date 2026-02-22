@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from agentweave.core.types import StreamChunk, Usage
+from agentchord.core.types import StreamChunk, Usage
 
 
 class TestStreamChunk:

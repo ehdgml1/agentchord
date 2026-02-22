@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from agentweave import Agent, AgentResult
-from agentweave.core.types import Message, MessageRole, ToolCall, Usage
-from agentweave.tools.base import Tool, ToolParameter, ToolResult
-from agentweave.tools.decorator import tool
+from agentchord import Agent, AgentResult
+from agentchord.core.types import Message, MessageRole, ToolCall, Usage
+from agentchord.tools.base import Tool, ToolParameter, ToolResult
+from agentchord.tools.decorator import tool
 from tests.conftest import MockLLMProvider, MockToolCallProvider
 
 

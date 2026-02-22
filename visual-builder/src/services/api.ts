@@ -28,6 +28,7 @@ import type {
   ABTestCreate,
   ABTestStats,
 } from '../types/admin';
+import type { DocumentFileInfo } from '../types/blocks';
 
 export interface LLMProviderStatus {
   name: string;
@@ -42,6 +43,13 @@ export interface LLMModelInfo {
   contextWindow: number;
   costPer1kInput: number;
   costPer1kOutput: number;
+}
+
+export interface LLMKeyStatus {
+  provider: string;
+  hasUserKey: boolean;
+  hasServerKey: boolean;
+  configured: boolean;
 }
 
 const API_BASE = '/api';
@@ -540,11 +548,120 @@ const llm = {
     const res = await fetchApi<{ models: LLMModelInfo[] }>('/llm/models');
     return res.models;
   },
+
+  /**
+   * Get API key status for all providers
+   */
+  async getKeyStatus(): Promise<LLMKeyStatus[]> {
+    const res = await fetchApi<{ keys: LLMKeyStatus[] }>('/llm/keys');
+    return res.keys;
+  },
+
+  /**
+   * Save a user API key for a provider
+   */
+  async setKey(provider: string, apiKey: string): Promise<void> {
+    await fetchApi(`/llm/keys/${provider}`, {
+      method: 'PUT',
+      body: JSON.stringify({ apiKey }),
+    });
+  },
+
+  /**
+   * Validate an API key for a provider
+   */
+  async validateKey(provider: string, apiKey: string): Promise<{ valid: boolean; error?: string }> {
+    return fetchApi(`/llm/keys/${provider}/validate`, {
+      method: 'POST',
+      body: JSON.stringify({ apiKey }),
+    });
+  },
+
+  /**
+   * Delete a user API key for a provider
+   */
+  async deleteKey(provider: string): Promise<void> {
+    await fetchApi(`/llm/keys/${provider}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 /**
  * Complete API client
  */
+/**
+ * Playground API endpoints
+ */
+const playground = {
+  /**
+   * Send a chat message to execute a workflow with conversation history
+   */
+  async chat(
+    workflowId: string,
+    message: string,
+    history: { role: string; content: string }[]
+  ): Promise<{ executionId: string; status: string }> {
+    return fetchApi('/playground/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        workflowId,
+        message,
+        history,
+      }),
+    });
+  },
+};
+
+/**
+ * Document upload API endpoints
+ */
+const documents = {
+  /**
+   * Upload a document file for RAG processing
+   */
+  async upload(file: File): Promise<DocumentFileInfo> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${API_BASE}/documents/upload`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        ...(authToken && { Authorization: `Bearer ${authToken}` }),
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new ApiError(
+        errorData.detail || errorData.error?.message || `Upload failed: ${response.status}`,
+        response.status,
+        errorData
+      );
+    }
+
+    return response.json();
+  },
+
+  /**
+   * List all uploaded documents
+   */
+  async list(): Promise<DocumentFileInfo[]> {
+    return fetchApi<DocumentFileInfo[]>('/documents');
+  },
+
+  /**
+   * Delete an uploaded document
+   */
+  async delete(fileId: string): Promise<void> {
+    return fetchApi<void>(`/documents/${fileId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 export const api = {
   workflows,
   executions,
@@ -554,6 +671,8 @@ export const api = {
   versions,
   admin,
   llm,
+  playground,
+  documents,
 };
 
 export { ApiError };

@@ -3,10 +3,10 @@
 import pytest
 from unittest.mock import AsyncMock
 
-from agentweave.core.agent import Agent
-from agentweave.core.types import ToolCall
-from agentweave.errors.exceptions import ModelNotFoundError
-from agentweave.protocols.mcp.types import MCPTool, MCPToolResult
+from agentchord.core.agent import Agent
+from agentchord.core.types import ToolCall
+from agentchord.errors.exceptions import ModelNotFoundError
+from agentchord.protocols.mcp.types import MCPTool, MCPToolResult
 from tests.conftest import MockLLMProvider, MockToolCallProvider
 
 
@@ -193,19 +193,19 @@ class TestAgentMCPToolExecution:
         mock_client = AsyncMock()
         mock_client.list_tools = AsyncMock(return_value=[mcp_tool])
         mock_client.call_tool = AsyncMock(
-            return_value=MCPToolResult(content="Search result: AgentWeave is amazing!")
+            return_value=MCPToolResult(content="Search result: AgentChord is amazing!")
         )
 
         # Create mock provider that returns tool_calls, then final response
         tool_call = ToolCall(
             id="call_1",
             name="search",
-            arguments={"query": "AgentWeave"},
+            arguments={"query": "AgentChord"},
         )
 
         mock_provider = MockToolCallProvider(
             tool_calls_sequence=[[tool_call], None],
-            responses=["", "Based on the search, AgentWeave is a great framework!"],
+            responses=["", "Based on the search, AgentChord is a great framework!"],
         )
 
         # Create agent with MCP client and mock provider
@@ -220,17 +220,17 @@ class TestAgentMCPToolExecution:
         await agent.setup_mcp()
 
         # Run agent
-        result = await agent.run("Tell me about AgentWeave")
+        result = await agent.run("Tell me about AgentChord")
 
         # Verify MCP tool was called
         mock_client.call_tool.assert_called_once()
         call_args = mock_client.call_tool.call_args
         # call_tool(tool_name, kwargs) - positional args
         assert call_args[0][0] == "search"  # tool name
-        assert call_args[0][1]["query"] == "AgentWeave"  # kwargs dict
+        assert call_args[0][1]["query"] == "AgentChord"  # kwargs dict
 
         # Verify final result
-        assert "AgentWeave is a great framework" in result.output
+        assert "AgentChord is a great framework" in result.output
         assert result.metadata["tool_rounds"] == 2
         assert mock_provider.call_count == 2
 

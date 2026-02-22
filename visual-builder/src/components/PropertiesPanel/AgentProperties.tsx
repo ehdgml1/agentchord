@@ -5,7 +5,8 @@
  * temperature, and system prompt.
  */
 
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
+import { CheckCircle2, AlertTriangle } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
@@ -18,17 +19,43 @@ import {
 } from '../ui/select';
 import { Slider } from '../ui/slider';
 import { MODEL_LIST } from '../../constants/models';
-import type { AgentBlockData, ModelId } from '../../types/blocks';
+import { MCPToolSelector } from './MCPToolSelector';
+import { OutputFieldsEditor } from './OutputFieldsEditor';
+import { InputTemplateEditor } from './InputTemplateEditor';
+import { useLLMKeyStatus } from '../../hooks/useLLMKeyStatus';
+import type { AgentBlockData, ModelId, OutputFieldConfig } from '../../types/blocks';
+
+function getProviderFromModel(modelId: string): string {
+  if (modelId.startsWith('gpt-') || modelId.startsWith('o1')) {
+    return 'openai';
+  } else if (modelId.startsWith('claude-')) {
+    return 'anthropic';
+  } else if (modelId.startsWith('gemini-')) {
+    return 'google';
+  } else {
+    return 'ollama';
+  }
+}
 
 interface AgentPropertiesProps {
+  nodeId: string;
   data: AgentBlockData;
   onChange: (data: Partial<AgentBlockData>) => void;
 }
 
 export const AgentProperties = memo(function AgentProperties({
+  nodeId,
   data,
   onChange,
 }: AgentPropertiesProps) {
+  const { isProviderConfigured } = useLLMKeyStatus();
+
+  const provider = useMemo(() => getProviderFromModel(data.model), [data.model]);
+  const providerConfigured = useMemo(
+    () => isProviderConfigured(provider),
+    [isProviderConfigured, provider]
+  );
+
   const handleNameChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       onChange({ name: e.target.value });
@@ -115,6 +142,17 @@ export const AgentProperties = memo(function AgentProperties({
             ))}
           </SelectContent>
         </Select>
+        {providerConfigured ? (
+          <div className="flex items-center gap-1.5 text-xs text-green-600">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            <span>Provider configured</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-xs text-yellow-600">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            <span>No API key for {provider}. Set in LLM Settings.</span>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -159,6 +197,25 @@ export const AgentProperties = memo(function AgentProperties({
           rows={4}
         />
       </div>
+
+      {/* Input Template */}
+      <InputTemplateEditor
+        nodeId={nodeId}
+        value={(data.inputTemplate as string) || ''}
+        onChange={(inputTemplate) => onChange({ inputTemplate })}
+      />
+
+      {/* Output Fields */}
+      <OutputFieldsEditor
+        fields={(data.outputFields as OutputFieldConfig[]) || []}
+        onChange={(fields) => onChange({ ...data, outputFields: fields })}
+      />
+
+      {/* MCP Tools */}
+      <MCPToolSelector
+        selectedTools={(data.mcpTools as string[]) || []}
+        onChange={(tools) => onChange({ ...data, mcpTools: tools })}
+      />
     </div>
   );
 });

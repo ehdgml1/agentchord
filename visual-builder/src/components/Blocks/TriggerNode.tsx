@@ -10,6 +10,7 @@ import { memo } from 'react';
 import { type NodeProps } from '@xyflow/react';
 import { Clock, Globe } from 'lucide-react';
 import { BaseNode } from './BaseNode';
+import { useNodeExecutionStatus } from '../../hooks/useNodeExecutionStatus';
 import { cronToHuman, formatNextRun } from '../../lib/cronUtils';
 
 import type { TriggerBlockData } from '../../types/blocks';
@@ -27,9 +28,11 @@ const COLORS = {
 } as const;
 
 export const TriggerNode = memo(function TriggerNode({
+  id,
   data,
   selected,
 }: TriggerNodeProps) {
+  const executionStatus = useNodeExecutionStatus(id);
   const isCron = data.triggerType === 'cron';
   const color = COLORS[data.triggerType];
   const Icon = isCron ? Clock : Globe;
@@ -50,7 +53,7 @@ export const TriggerNode = memo(function TriggerNode({
     : null;
 
   return (
-    <BaseNode color={color} selected={selected} hasInput={false} hasOutput>
+    <BaseNode color={color} selected={selected} hasInput={false} hasOutput executionStatus={executionStatus}>
       <div className="p-3">
         <div className="flex items-center gap-2 mb-2">
           <div

@@ -142,6 +142,7 @@ describe('executionStore', () => {
         completedAt: null,
         durationMs: null,
       };
+      vi.mocked(api.executions.list).mockResolvedValueOnce([]);
       vi.mocked(api.workflows.run).mockResolvedValueOnce(newExecution);
 
       const result = await useExecutionStore.getState().runWorkflow('w1', 'test input', 'full');
@@ -149,6 +150,7 @@ describe('executionStore', () => {
       expect(result).toEqual(newExecution);
       expect(useExecutionStore.getState().executions[0]).toEqual(newExecution);
       expect(useExecutionStore.getState().currentExecution).toEqual(newExecution);
+      expect(api.executions.list).toHaveBeenCalledWith('w1');
       expect(api.workflows.run).toHaveBeenCalledWith('w1', 'test input', 'full');
     });
 

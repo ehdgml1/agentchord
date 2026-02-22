@@ -7,11 +7,13 @@ vi.mock('../../services/api', () => ({
   api: {
     llm: {
       listProviders: vi.fn(),
+      getKeyStatus: vi.fn(),
     },
   },
 }));
 
 const mockListProviders = vi.mocked(api.llm.listProviders);
+const mockGetKeyStatus = vi.mocked(api.llm.getKeyStatus);
 
 describe('LLMStatus', () => {
   beforeEach(() => {
@@ -26,6 +28,10 @@ describe('LLMStatus', () => {
       ],
       defaultModel: 'gpt-4o',
     });
+    mockGetKeyStatus.mockResolvedValue([
+      { provider: 'openai', hasUserKey: true, hasServerKey: false, configured: true },
+      { provider: 'anthropic', hasUserKey: true, hasServerKey: false, configured: true },
+    ]);
 
     render(<LLMStatus />);
 
@@ -42,6 +48,10 @@ describe('LLMStatus', () => {
       ],
       defaultModel: 'gpt-4o',
     });
+    mockGetKeyStatus.mockResolvedValue([
+      { provider: 'openai', hasUserKey: true, hasServerKey: false, configured: true },
+      { provider: 'anthropic', hasUserKey: false, hasServerKey: false, configured: false },
+    ]);
 
     render(<LLMStatus />);
 
@@ -58,6 +68,10 @@ describe('LLMStatus', () => {
       ],
       defaultModel: 'gpt-4o-mini',
     });
+    mockGetKeyStatus.mockResolvedValue([
+      { provider: 'openai', hasUserKey: false, hasServerKey: false, configured: false },
+      { provider: 'anthropic', hasUserKey: false, hasServerKey: false, configured: false },
+    ]);
 
     render(<LLMStatus />);
 
@@ -68,6 +82,7 @@ describe('LLMStatus', () => {
 
   it('renders error state when API fails', async () => {
     mockListProviders.mockRejectedValue(new Error('Network error'));
+    mockGetKeyStatus.mockRejectedValue(new Error('Network error'));
 
     render(<LLMStatus />);
 
@@ -81,11 +96,13 @@ describe('LLMStatus', () => {
       providers: [],
       defaultModel: '',
     });
+    mockGetKeyStatus.mockResolvedValue([]);
 
     render(<LLMStatus />);
 
     await waitFor(() => {
       expect(mockListProviders).toHaveBeenCalledOnce();
+      expect(mockGetKeyStatus).toHaveBeenCalledOnce();
     });
   });
 
@@ -94,11 +111,13 @@ describe('LLMStatus', () => {
       providers: [],
       defaultModel: '',
     });
+    mockGetKeyStatus.mockResolvedValue([]);
 
     const { container } = render(<LLMStatus className="custom-class" />);
 
     await waitFor(() => {
-      expect(container.firstChild).toHaveClass('custom-class');
+      const button = container.querySelector('button');
+      expect(button).toHaveClass('custom-class');
     });
   });
 });

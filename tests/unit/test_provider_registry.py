@@ -7,9 +7,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import agentweave.llm.registry as registry_module
-from agentweave.errors.exceptions import ModelNotFoundError
-from agentweave.llm.registry import ProviderInfo, ProviderRegistry, get_registry
+import agentchord.llm.registry as registry_module
+from agentchord.errors.exceptions import ModelNotFoundError
+from agentchord.llm.registry import ProviderInfo, ProviderRegistry, get_registry
 
 
 class TestProviderRegistration:

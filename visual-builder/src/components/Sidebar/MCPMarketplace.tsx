@@ -12,7 +12,8 @@ interface MCPMarketplaceProps {
 export function MCPMarketplace({ onClose: _onClose }: MCPMarketplaceProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const { servers, connectServer } = useMCPStore();
+  const [installingIds, setInstallingIds] = useState<Set<string>>(new Set());
+  const { servers, connectServer, error, clearError } = useMCPStore();
 
   const filteredServers = useMemo(() => {
     return MCP_CATALOG.filter((server) => {
@@ -27,23 +28,39 @@ export function MCPMarketplace({ onClose: _onClose }: MCPMarketplaceProps) {
     }).sort((a, b) => b.stars - a.stars);
   }, [searchQuery, selectedCategory]);
 
-  const handleInstall = (server: MCPServerInfo) => {
-    connectServer({
-      name: server.name,
-      command: server.command,
-      args: server.args,
-      env: {},
-    });
+  const handleInstall = async (server: MCPServerInfo, env: Record<string, string>) => {
+    setInstallingIds(prev => new Set(prev).add(server.id));
+    try {
+      await connectServer({
+        name: server.name,
+        command: server.command,
+        args: server.args,
+        env,
+      });
+    } finally {
+      setInstallingIds(prev => {
+        const next = new Set(prev);
+        next.delete(server.id);
+        return next;
+      });
+    }
   };
 
-  const isInstalled = (serverId: string) => {
-    return servers.some(s => s.name.toLowerCase() === serverId.toLowerCase());
+  const isInstalled = (serverName: string) => {
+    return servers.some(s => s.name.toLowerCase() === serverName.toLowerCase());
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       <div className="p-4 border-b">
         <h2 className="text-lg font-semibold mb-4">MCP Marketplace</h2>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm flex justify-between items-center mb-4">
+            <span>{error}</span>
+            <button onClick={clearError} className="text-red-500 hover:text-red-700 ml-2">×</button>
+          </div>
+        )}
 
         <div className="space-y-3">
           <div className="relative">
@@ -78,7 +95,8 @@ export function MCPMarketplace({ onClose: _onClose }: MCPMarketplaceProps) {
             <ServerCard
               key={server.id}
               server={server}
-              isInstalled={isInstalled(server.id)}
+              isInstalled={isInstalled(server.name)}
+              isInstalling={installingIds.has(server.id)}
               onInstall={handleInstall}
             />
           ))}

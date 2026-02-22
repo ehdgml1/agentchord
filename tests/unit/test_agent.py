@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from agentweave import Agent, AgentResult, Message, MessageRole
+from agentchord import Agent, AgentResult, Message, MessageRole
 from tests.conftest import MockLLMProvider
 
 

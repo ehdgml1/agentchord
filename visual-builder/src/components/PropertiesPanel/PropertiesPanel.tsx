@@ -14,6 +14,7 @@ import { MCPToolProperties } from './MCPToolProperties';
 import { ConditionProperties } from './ConditionProperties';
 import { ParallelProperties } from './ParallelProperties';
 import { FeedbackLoopProperties } from './FeedbackLoopProperties';
+import { TriggerProperties } from './TriggerProperties';
 import { RAGProperties } from './RAGProperties';
 import { MultiAgentProperties } from './MultiAgentProperties';
 import { useWorkflowStore, useSelectedNode } from '../../stores/workflowStore';
@@ -61,18 +62,18 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
 
   if (!selectedNode) {
     return (
-      <aside className="w-72 border-l bg-background p-4">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4">
         <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
           Select a block to edit
         </div>
-      </aside>
+      </div>
     );
   }
 
   const definition = getBlockDefinition(selectedNode.type as BlockType);
 
   return (
-    <aside className="w-72 border-l bg-background p-4 overflow-y-auto">
+    <div className="flex-1 min-h-0 overflow-y-auto p-4">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold">{definition?.label || 'Properties'}</h2>
         <Button variant="ghost" size="icon" onClick={handleClose}>
@@ -81,23 +82,15 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
       </div>
 
       {selectedNode.type === BlockType.TRIGGER && (
-        <div className="space-y-4">
-          <div className="text-sm text-muted-foreground">
-            <p className="font-medium mb-2">Trigger Configuration</p>
-            <p>Trigger type: {(selectedNode.data as TriggerBlockData).triggerType || 'Not configured'}</p>
-            {(selectedNode.data as TriggerBlockData).triggerType === 'cron' && (
-              <p className="mt-1">Cron: {(selectedNode.data as TriggerBlockData).cronExpression || 'Not set'}</p>
-            )}
-            {(selectedNode.data as TriggerBlockData).triggerType === 'webhook' && (
-              <p className="mt-1">Path: {(selectedNode.data as TriggerBlockData).webhookPath || 'Not set'}</p>
-            )}
-            <p className="mt-3 text-xs">Full trigger properties panel coming soon.</p>
-          </div>
-        </div>
+        <TriggerProperties
+          data={selectedNode.data as TriggerBlockData}
+          onChange={handleDataChange}
+        />
       )}
 
       {selectedNode.type === BlockType.AGENT && (
         <AgentProperties
+          nodeId={selectedNode.id}
           data={selectedNode.data as AgentBlockData}
           onChange={handleDataChange}
         />
@@ -105,6 +98,7 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
 
       {selectedNode.type === BlockType.MCP_TOOL && (
         <MCPToolProperties
+          nodeId={selectedNode.id}
           data={selectedNode.data as MCPToolBlockData}
           onChange={handleDataChange}
         />
@@ -126,6 +120,7 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
 
       {selectedNode.type === BlockType.FEEDBACK_LOOP && (
         <FeedbackLoopProperties
+          nodeId={selectedNode.id}
           data={selectedNode.data as FeedbackLoopBlockData}
           onChange={handleDataChange}
         />
@@ -133,6 +128,7 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
 
       {selectedNode.type === BlockType.RAG && (
         <RAGProperties
+          nodeId={selectedNode.id}
           data={selectedNode.data as RAGBlockData}
           onChange={handleDataChange}
         />
@@ -145,25 +141,16 @@ export const PropertiesPanel = memo(function PropertiesPanel() {
         />
       )}
 
-      {(selectedNode.type === BlockType.START || selectedNode.type === BlockType.END) && (
-        <div className="text-sm text-muted-foreground">
-          <p>{selectedNode.type === BlockType.START ? 'Start' : 'End'} node - the {selectedNode.type === BlockType.START ? 'entry point' : 'exit point'} of your workflow.</p>
-          <p className="mt-2 text-xs">This node cannot be configured or deleted.</p>
-        </div>
-      )}
-
-      {selectedNode.type !== BlockType.START && selectedNode.type !== BlockType.END && (
-        <div className="mt-6 pt-4 border-t">
-          <Button
-            variant="destructive"
-            size="sm"
-            className="w-full"
-            onClick={handleDelete}
-          >
-            Delete Block
-          </Button>
-        </div>
-      )}
-    </aside>
+      <div className="mt-6 pt-4 border-t">
+        <Button
+          variant="destructive"
+          size="sm"
+          className="w-full"
+          onClick={handleDelete}
+        >
+          Delete Block
+        </Button>
+      </div>
+    </div>
   );
 });

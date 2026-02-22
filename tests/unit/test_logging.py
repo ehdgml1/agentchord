@@ -7,8 +7,8 @@ from io import StringIO
 import pytest
 from rich.console import Console
 
-from agentweave.logging.logger import LogLevel, AgentWeaveLogger
-from agentweave.logging.config import (
+from agentchord.logging.logger import LogLevel, AgentChordLogger
+from agentchord.logging.config import (
     get_logger,
     configure_logging,
     disable_logging,
@@ -26,12 +26,12 @@ class TestLogLevel:
         assert LogLevel.WARNING.rank < LogLevel.ERROR.rank
 
 
-class TestAgentWeaveLogger:
-    """Tests for AgentWeaveLogger."""
+class TestAgentChordLogger:
+    """Tests for AgentChordLogger."""
 
     def test_default_creation(self) -> None:
         """Should create with defaults."""
-        logger = AgentWeaveLogger()
+        logger = AgentChordLogger()
 
         assert logger.level == LogLevel.INFO
         assert logger.enabled is True
@@ -40,7 +40,7 @@ class TestAgentWeaveLogger:
         """Should filter messages below level."""
         output = StringIO()
         console = Console(file=output, force_terminal=True)
-        logger = AgentWeaveLogger(level=LogLevel.WARNING, console=console)
+        logger = AgentChordLogger(level=LogLevel.WARNING, console=console)
 
         logger.debug("Debug message")
         logger.info("Info message")
@@ -55,7 +55,7 @@ class TestAgentWeaveLogger:
         """Should not log when disabled."""
         output = StringIO()
         console = Console(file=output, force_terminal=True)
-        logger = AgentWeaveLogger(enabled=False, console=console)
+        logger = AgentChordLogger(enabled=False, console=console)
 
         logger.info("Should not appear")
 
@@ -63,7 +63,7 @@ class TestAgentWeaveLogger:
 
     def test_enable_disable(self) -> None:
         """Should toggle enabled state."""
-        logger = AgentWeaveLogger()
+        logger = AgentChordLogger()
 
         logger.enabled = False
         assert logger.enabled is False
@@ -75,7 +75,7 @@ class TestAgentWeaveLogger:
         """Should log agent start."""
         output = StringIO()
         console = Console(file=output, force_terminal=True)
-        logger = AgentWeaveLogger(console=console)
+        logger = AgentChordLogger(console=console)
 
         logger.agent_start("researcher", "What is AI?")
 
@@ -87,7 +87,7 @@ class TestAgentWeaveLogger:
         """Should log agent end with metrics."""
         output = StringIO()
         console = Console(file=output, force_terminal=True)
-        logger = AgentWeaveLogger(console=console)
+        logger = AgentChordLogger(console=console)
 
         logger.agent_end("researcher", duration_ms=150, tokens=100, cost=0.001)
 
@@ -99,7 +99,7 @@ class TestAgentWeaveLogger:
         """Should log LLM call details."""
         output = StringIO()
         console = Console(file=output, force_terminal=True)
-        logger = AgentWeaveLogger(level=LogLevel.DEBUG, console=console)
+        logger = AgentChordLogger(level=LogLevel.DEBUG, console=console)
 
         logger.llm_call("gpt-4o-mini", tokens=500, cost=0.001, duration_ms=200)
 
@@ -111,7 +111,7 @@ class TestAgentWeaveLogger:
         """Should log tool calls."""
         output = StringIO()
         console = Console(file=output, force_terminal=True)
-        logger = AgentWeaveLogger(level=LogLevel.DEBUG, console=console)
+        logger = AgentChordLogger(level=LogLevel.DEBUG, console=console)
 
         logger.tool_call("search", success=True, duration_ms=50)
 
@@ -129,8 +129,8 @@ class TestLoggingConfig:
 
         # Note: We can't guarantee same instance after configure_logging
         # but they should be valid loggers
-        assert isinstance(logger1, AgentWeaveLogger)
-        assert isinstance(logger2, AgentWeaveLogger)
+        assert isinstance(logger1, AgentChordLogger)
+        assert isinstance(logger2, AgentChordLogger)
 
     def test_configure_logging(self) -> None:
         """Should configure global logger."""

@@ -34,7 +34,7 @@ We implemented a **three-stage hybrid search pipeline**:
 
 ### Stage 1: BM25 Sparse Search (Pure Python)
 
-Located in `agentweave/rag/search/bm25.py`, we implemented Okapi BM25 from scratch:
+Located in `agentchord/rag/search/bm25.py`, we implemented Okapi BM25 from scratch:
 
 **Scoring formula** (lines 6-15):
 ```
@@ -83,7 +83,7 @@ Delegated to `VectorStore` implementations (In-Memory, ChromaDB, FAISS). Uses co
 
 ### Stage 3: Reciprocal Rank Fusion (RRF)
 
-Located in `agentweave/rag/search/hybrid.py:220-272`, we merge BM25 + vector results using **RRF** (Reciprocal Rank Fusion):
+Located in `agentchord/rag/search/hybrid.py:220-272`, we merge BM25 + vector results using **RRF** (Reciprocal Rank Fusion):
 
 **RRF formula** (lines 6-14):
 ```
@@ -239,5 +239,5 @@ async def query(self, question: str, ...) -> RAGResponse:
 ## References
 - **BM25 Algorithm**: Robertson & Zaragoza (2009). "The Probabilistic Relevance Framework: BM25 and Beyond"
 - **RRF Fusion**: Cormack, Clarke & Buettcher (2009). "Reciprocal Rank Fusion outperforms Condorcet and Individual Rank Learning Methods". SIGIR 2009.
-- Implementation: `agentweave/rag/search/{bm25.py,hybrid.py}`, `agentweave/rag/pipeline.py`
-- Tests: `agentweave/tests/unit/rag/search/test_bm25.py` (28 tests), `agentweave/tests/unit/rag/search/test_hybrid.py` (19 tests), `agentweave/tests/integration/test_rag_e2e.py` (12 tests)
+- Implementation: `agentchord/rag/search/{bm25.py,hybrid.py}`, `agentchord/rag/pipeline.py`
+- Tests: `agentchord/tests/unit/rag/search/test_bm25.py` (28 tests), `agentchord/tests/unit/rag/search/test_hybrid.py` (19 tests), `agentchord/tests/integration/test_rag_e2e.py` (12 tests)

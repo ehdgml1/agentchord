@@ -2,21 +2,23 @@
  * Properties editor for Feedback Loop blocks
  *
  * Provides form controls for configuring loop iterations
- * and stop conditions.
+ * and stop conditions with a visual condition builder.
  */
 
 import { memo, useCallback } from 'react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
+import { ConditionBuilder } from './ConditionBuilder';
 import type { FeedbackLoopBlockData } from '../../types/blocks';
 
 interface FeedbackLoopPropertiesProps {
+  nodeId: string;
   data: FeedbackLoopBlockData;
   onChange: (data: Partial<FeedbackLoopBlockData>) => void;
 }
 
 export const FeedbackLoopProperties = memo(function FeedbackLoopProperties({
+  nodeId,
   data,
   onChange,
 }: FeedbackLoopPropertiesProps) {
@@ -31,8 +33,8 @@ export const FeedbackLoopProperties = memo(function FeedbackLoopProperties({
   );
 
   const handleStopConditionChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      onChange({ stopCondition: e.target.value });
+    (condition: string) => {
+      onChange({ stopCondition: condition });
     },
     [onChange]
   );
@@ -40,7 +42,7 @@ export const FeedbackLoopProperties = memo(function FeedbackLoopProperties({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="maxIterations">Max Iterations</Label>
+        <Label htmlFor="maxIterations">최대 반복 횟수</Label>
         <Input
           id="maxIterations"
           type="number"
@@ -52,20 +54,11 @@ export const FeedbackLoopProperties = memo(function FeedbackLoopProperties({
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="stopCondition">Stop Condition</Label>
-        <Textarea
-          id="stopCondition"
-          value={data.stopCondition || ''}
-          onChange={handleStopConditionChange}
-          placeholder="iteration > 5 or result == 'done'"
-          rows={4}
-          className="font-mono text-sm"
-        />
-        <p className="text-xs text-muted-foreground">
-          Available variables: iteration (current count), result (previous output)
-        </p>
-      </div>
+      <ConditionBuilder
+        nodeId={nodeId}
+        value={data.stopCondition || ''}
+        onChange={handleStopConditionChange}
+      />
     </div>
   );
 });

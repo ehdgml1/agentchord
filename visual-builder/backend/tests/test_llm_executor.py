@@ -6,60 +6,65 @@ from app.config import Settings
 
 
 class TestCreateLLMProvider:
-    """Test WorkflowExecutor._create_llm_provider static method."""
+    """Test WorkflowExecutor._create_llm_provider instance method."""
 
-    def test_creates_openai_provider_gpt4o(self):
+    @pytest.mark.asyncio
+    async def test_creates_openai_provider_gpt4o(self, executor):
         """Creates OpenAI provider for GPT-4o."""
         settings = Settings(
             database_url="sqlite:///test.db",
             openai_api_key="sk-test",
         )
-        provider = WorkflowExecutor._create_llm_provider("gpt-4o", settings)
+        provider = await executor._create_llm_provider("gpt-4o", settings)
 
         assert provider is not None
         assert provider.model == "gpt-4o"
         assert provider._api_key == "sk-test"
 
-    def test_creates_openai_provider_gpt4o_mini(self):
+    @pytest.mark.asyncio
+    async def test_creates_openai_provider_gpt4o_mini(self, executor):
         """Creates OpenAI provider for GPT-4o Mini."""
         settings = Settings(
             database_url="sqlite:///test.db",
             openai_api_key="sk-test",
         )
-        provider = WorkflowExecutor._create_llm_provider("gpt-4o-mini", settings)
+        provider = await executor._create_llm_provider("gpt-4o-mini", settings)
 
         assert provider is not None
         assert provider.model == "gpt-4o-mini"
 
-    def test_creates_openai_provider_o1(self):
+    @pytest.mark.asyncio
+    async def test_creates_openai_provider_o1(self, executor):
         """Creates OpenAI provider for O1 model."""
         settings = Settings(
             database_url="sqlite:///test.db",
             openai_api_key="sk-test",
         )
-        provider = WorkflowExecutor._create_llm_provider("o1", settings)
+        provider = await executor._create_llm_provider("o1", settings)
 
         assert provider is not None
         assert provider.model == "o1"
 
-    def test_creates_openai_provider_o1_mini(self):
+    @pytest.mark.asyncio
+    async def test_creates_openai_provider_o1_mini(self, executor):
         """Creates OpenAI provider for O1-mini model."""
         settings = Settings(
             database_url="sqlite:///test.db",
             openai_api_key="sk-test",
         )
-        provider = WorkflowExecutor._create_llm_provider("o1-mini", settings)
+        provider = await executor._create_llm_provider("o1-mini", settings)
 
         assert provider is not None
         assert provider.model == "o1-mini"
 
-    def test_creates_anthropic_provider_sonnet(self):
+    @pytest.mark.asyncio
+    async def test_creates_anthropic_provider_sonnet(self, executor):
         """Creates Anthropic provider for Claude Sonnet."""
         settings = Settings(
             database_url="sqlite:///test.db",
             anthropic_api_key="sk-ant-test",
         )
-        provider = WorkflowExecutor._create_llm_provider(
+        provider = await executor._create_llm_provider(
             "claude-sonnet-4-5-20250929", settings
         )
 
@@ -67,112 +72,123 @@ class TestCreateLLMProvider:
         assert provider.model == "claude-sonnet-4-5-20250929"
         assert provider._api_key == "sk-ant-test"
 
-    def test_creates_anthropic_provider_haiku(self):
+    @pytest.mark.asyncio
+    async def test_creates_anthropic_provider_haiku(self, executor):
         """Creates Anthropic provider for Claude Haiku."""
         settings = Settings(
             database_url="sqlite:///test.db",
             anthropic_api_key="sk-ant-test",
         )
-        provider = WorkflowExecutor._create_llm_provider(
+        provider = await executor._create_llm_provider(
             "claude-haiku-4-5-20251001", settings
         )
 
         assert provider is not None
         assert provider.model == "claude-haiku-4-5-20251001"
 
-    def test_creates_anthropic_provider_opus(self):
+    @pytest.mark.asyncio
+    async def test_creates_anthropic_provider_opus(self, executor):
         """Creates Anthropic provider for Claude Opus."""
         settings = Settings(
             database_url="sqlite:///test.db",
             anthropic_api_key="sk-ant-test",
         )
-        provider = WorkflowExecutor._create_llm_provider("claude-opus-4-6", settings)
+        provider = await executor._create_llm_provider("claude-opus-4-6", settings)
 
         assert provider is not None
         assert provider.model == "claude-opus-4-6"
 
-    def test_raises_without_openai_key(self):
+    @pytest.mark.asyncio
+    async def test_raises_without_openai_key(self, executor):
         """Raises ValueError when OpenAI key not configured."""
         settings = Settings(database_url="sqlite:///test.db")
 
         with pytest.raises(ValueError, match="OpenAI API key not configured"):
-            WorkflowExecutor._create_llm_provider("gpt-4o", settings)
+            await executor._create_llm_provider("gpt-4o", settings)
 
-    def test_raises_without_anthropic_key(self):
+    @pytest.mark.asyncio
+    async def test_raises_without_anthropic_key(self, executor):
         """Raises ValueError when Anthropic key not configured."""
         settings = Settings(database_url="sqlite:///test.db")
 
         with pytest.raises(ValueError, match="Anthropic API key not configured"):
-            WorkflowExecutor._create_llm_provider(
+            await executor._create_llm_provider(
                 "claude-sonnet-4-5-20250929", settings
             )
 
-    def test_raises_unsupported_model(self):
+    @pytest.mark.asyncio
+    async def test_raises_unsupported_model(self, executor):
         """Raises ValueError for unsupported model."""
         settings = Settings(database_url="sqlite:///test.db")
 
         with pytest.raises(ValueError, match="Unsupported model"):
-            WorkflowExecutor._create_llm_provider("llama-3", settings)
+            await executor._create_llm_provider("llama-3", settings)
 
-    def test_creates_gemini_provider(self):
+    @pytest.mark.asyncio
+    async def test_creates_gemini_provider(self, executor):
         """Creates Gemini provider for Gemini models."""
         settings = Settings(
             database_url="sqlite:///test.db",
             gemini_api_key="test-gemini-key",
         )
-        provider = WorkflowExecutor._create_llm_provider("gemini-2.0-flash", settings)
+        provider = await executor._create_llm_provider("gemini-2.0-flash", settings)
 
         assert provider is not None
         assert provider.model == "gemini-2.0-flash"
 
-    def test_raises_without_gemini_key(self):
+    @pytest.mark.asyncio
+    async def test_raises_without_gemini_key(self, executor):
         """Raises ValueError when Gemini key not configured."""
         settings = Settings(database_url="sqlite:///test.db")
 
         with pytest.raises(ValueError, match="Gemini API key not configured"):
-            WorkflowExecutor._create_llm_provider("gemini-pro", settings)
+            await executor._create_llm_provider("gemini-pro", settings)
 
-    def test_passes_base_url_to_openai(self):
+    @pytest.mark.asyncio
+    async def test_passes_base_url_to_openai(self, executor):
         """Passes custom base URL to OpenAI provider."""
         settings = Settings(
             database_url="sqlite:///test.db",
             openai_api_key="sk-test",
             openai_base_url="https://custom.api.com/v1",
         )
-        provider = WorkflowExecutor._create_llm_provider("gpt-4o", settings)
+        provider = await executor._create_llm_provider("gpt-4o", settings)
 
         assert provider._base_url == "https://custom.api.com/v1"
 
-    def test_uses_default_base_url_when_not_set(self):
+    @pytest.mark.asyncio
+    async def test_uses_default_base_url_when_not_set(self, executor):
         """Uses default OpenAI base URL when not configured."""
         settings = Settings(
             database_url="sqlite:///test.db",
             openai_api_key="sk-test",
         )
-        provider = WorkflowExecutor._create_llm_provider("gpt-4o", settings)
+        provider = await executor._create_llm_provider("gpt-4o", settings)
 
         # Default OpenAI base URL
         assert provider._base_url is None
 
-    def test_passes_timeout_to_openai(self):
+    @pytest.mark.asyncio
+    async def test_passes_timeout_to_openai(self, executor):
         """Passes timeout setting to OpenAI provider."""
         settings = Settings(
             database_url="sqlite:///test.db",
             openai_api_key="sk-test",
             llm_timeout=60.0,
         )
-        provider = WorkflowExecutor._create_llm_provider("gpt-4o", settings)
+        provider = await executor._create_llm_provider("gpt-4o", settings)
 
         assert provider._timeout == 60.0
 
-    def test_passes_timeout_to_anthropic(self):
+    @pytest.mark.asyncio
+    async def test_passes_timeout_to_anthropic(self, executor):
         """Passes timeout setting to Anthropic provider."""
         settings = Settings(
             database_url="sqlite:///test.db",
             anthropic_api_key="sk-ant-test",
             llm_timeout=90.0,
         )
-        provider = WorkflowExecutor._create_llm_provider(
+        provider = await executor._create_llm_provider(
             "claude-sonnet-4-5-20250929", settings
         )
 

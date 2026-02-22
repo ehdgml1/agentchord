@@ -20,7 +20,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agentweave.rag.types import Chunk, SearchResult
+from agentchord.rag.types import Chunk, SearchResult
 
 
 # ---------------------------------------------------------------------------
@@ -39,7 +39,7 @@ class TestOpenAIEmbeddings:
         dimensions: int | None = None,
     ):
         """Create an OpenAIEmbeddings instance with a pre-injected mock client."""
-        from agentweave.rag.embeddings.openai import OpenAIEmbeddings
+        from agentchord.rag.embeddings.openai import OpenAIEmbeddings
 
         provider = OpenAIEmbeddings(
             model=model, api_key=api_key, dimensions=dimensions
@@ -131,7 +131,7 @@ class TestOpenAIEmbeddings:
 
     async def test_dimensions_property(self):
         """dimensions returns configured value or model default."""
-        from agentweave.rag.embeddings.openai import OpenAIEmbeddings
+        from agentchord.rag.embeddings.openai import OpenAIEmbeddings
 
         # Default for text-embedding-3-small
         p1 = OpenAIEmbeddings(model="text-embedding-3-small")
@@ -151,14 +151,14 @@ class TestOpenAIEmbeddings:
 
     async def test_model_name_property(self):
         """model_name returns the configured model string."""
-        from agentweave.rag.embeddings.openai import OpenAIEmbeddings
+        from agentchord.rag.embeddings.openai import OpenAIEmbeddings
 
         p = OpenAIEmbeddings(model="text-embedding-ada-002")
         assert p.model_name == "text-embedding-ada-002"
 
     async def test_import_error_when_openai_not_installed(self):
         """ImportError raised with helpful message when openai package missing."""
-        from agentweave.rag.embeddings.openai import OpenAIEmbeddings
+        from agentchord.rag.embeddings.openai import OpenAIEmbeddings
 
         provider = OpenAIEmbeddings()
         provider._client = None  # Force lazy init
@@ -187,7 +187,7 @@ class TestOpenAIEmbeddings:
         mock_openai_module.AsyncOpenAI = mock_async_client_class
 
         with patch.dict(sys.modules, {"openai": mock_openai_module}):
-            from agentweave.rag.embeddings.openai import OpenAIEmbeddings
+            from agentchord.rag.embeddings.openai import OpenAIEmbeddings
 
             provider = OpenAIEmbeddings(api_key="sk-test-123")
             provider._client = None
@@ -213,7 +213,7 @@ class TestOllamaEmbeddings:
 
     async def test_embed_single_text(self):
         """embed() sends POST to /api/embeddings with correct payload."""
-        from agentweave.rag.embeddings.ollama import OllamaEmbeddings
+        from agentchord.rag.embeddings.ollama import OllamaEmbeddings
 
         expected = [0.1, 0.2, 0.3]
 
@@ -235,7 +235,7 @@ class TestOllamaEmbeddings:
 
     async def test_embed_batch_parallel_calls(self):
         """embed_batch() sends one HTTP request per text concurrently."""
-        from agentweave.rag.embeddings.ollama import OllamaEmbeddings
+        from agentchord.rag.embeddings.ollama import OllamaEmbeddings
 
         embeddings = [[0.1], [0.2], [0.3]]
         call_order: list[str] = []
@@ -260,7 +260,7 @@ class TestOllamaEmbeddings:
 
     async def test_embed_batch_empty_list(self):
         """embed_batch() with empty list returns empty without HTTP calls."""
-        from agentweave.rag.embeddings.ollama import OllamaEmbeddings
+        from agentchord.rag.embeddings.ollama import OllamaEmbeddings
 
         provider = OllamaEmbeddings()
         result = await provider.embed_batch([])
@@ -268,7 +268,7 @@ class TestOllamaEmbeddings:
 
     async def test_dimensions_property(self):
         """dimensions returns configured value."""
-        from agentweave.rag.embeddings.ollama import OllamaEmbeddings
+        from agentchord.rag.embeddings.ollama import OllamaEmbeddings
 
         p = OllamaEmbeddings(dimensions=1024)
         assert p.dimensions == 1024
@@ -278,14 +278,14 @@ class TestOllamaEmbeddings:
 
     async def test_model_name_property(self):
         """model_name returns configured model."""
-        from agentweave.rag.embeddings.ollama import OllamaEmbeddings
+        from agentchord.rag.embeddings.ollama import OllamaEmbeddings
 
         p = OllamaEmbeddings(model="mxbai-embed-large")
         assert p.model_name == "mxbai-embed-large"
 
     async def test_custom_base_url(self):
         """Custom base_url with trailing slash is normalized."""
-        from agentweave.rag.embeddings.ollama import OllamaEmbeddings
+        from agentchord.rag.embeddings.ollama import OllamaEmbeddings
 
         with patch("httpx.AsyncClient") as MockClient:
             mock_client = AsyncMock()
@@ -304,7 +304,7 @@ class TestOllamaEmbeddings:
         """HTTP errors from Ollama are propagated to caller."""
         import httpx
 
-        from agentweave.rag.embeddings.ollama import OllamaEmbeddings
+        from agentchord.rag.embeddings.ollama import OllamaEmbeddings
 
         with patch("httpx.AsyncClient") as MockClient:
             mock_client = AsyncMock()
@@ -333,7 +333,7 @@ class TestSentenceTransformerEmbeddings:
 
     def _make_provider(self, mock_model: Any, model_name: str = "all-MiniLM-L6-v2"):
         """Create provider with pre-injected mock model."""
-        from agentweave.rag.embeddings.sentence_transformer import (
+        from agentchord.rag.embeddings.sentence_transformer import (
             SentenceTransformerEmbeddings,
         )
 
@@ -390,7 +390,7 @@ class TestSentenceTransformerEmbeddings:
 
     async def test_dimensions_property(self):
         """dimensions returns known model dimension or default 384."""
-        from agentweave.rag.embeddings.sentence_transformer import (
+        from agentchord.rag.embeddings.sentence_transformer import (
             SentenceTransformerEmbeddings,
         )
 
@@ -401,7 +401,7 @@ class TestSentenceTransformerEmbeddings:
 
     async def test_model_name_property(self):
         """model_name returns configured model string."""
-        from agentweave.rag.embeddings.sentence_transformer import (
+        from agentchord.rag.embeddings.sentence_transformer import (
             SentenceTransformerEmbeddings,
         )
 
@@ -410,7 +410,7 @@ class TestSentenceTransformerEmbeddings:
 
     async def test_import_error_when_not_installed(self):
         """ImportError raised with helpful message when sentence-transformers missing."""
-        from agentweave.rag.embeddings.sentence_transformer import (
+        from agentchord.rag.embeddings.sentence_transformer import (
             SentenceTransformerEmbeddings,
         )
 
@@ -428,7 +428,7 @@ class TestSentenceTransformerEmbeddings:
         mock_st_module.SentenceTransformer = mock_model_class
 
         with patch.dict(sys.modules, {"sentence_transformers": mock_st_module}):
-            from agentweave.rag.embeddings.sentence_transformer import (
+            from agentchord.rag.embeddings.sentence_transformer import (
                 SentenceTransformerEmbeddings,
             )
 
@@ -473,7 +473,7 @@ class TestChromaVectorStore:
         collection_name: str = "test",
     ):
         """Create a ChromaVectorStore with pre-injected collection."""
-        from agentweave.rag.vectorstore.chroma import ChromaVectorStore
+        from agentchord.rag.vectorstore.chroma import ChromaVectorStore
 
         store = ChromaVectorStore(collection_name=collection_name)
         store._collection = mock_collection
@@ -676,7 +676,7 @@ class TestChromaVectorStore:
 
     async def test_clear_recreates_collection(self):
         """clear() deletes collection and recreates it."""
-        from agentweave.rag.vectorstore.chroma import ChromaVectorStore
+        from agentchord.rag.vectorstore.chroma import ChromaVectorStore
 
         mock_module, mock_client, mock_collection = self._make_mock_chromadb()
 
@@ -741,7 +741,7 @@ class TestChromaVectorStore:
 
     async def test_import_error_when_chromadb_not_installed(self):
         """ImportError raised with helpful message when chromadb missing."""
-        from agentweave.rag.vectorstore.chroma import ChromaVectorStore
+        from agentchord.rag.vectorstore.chroma import ChromaVectorStore
 
         store = ChromaVectorStore()
         store._collection = None
@@ -756,7 +756,7 @@ class TestChromaVectorStore:
         mock_module, mock_client, mock_collection = self._make_mock_chromadb()
 
         with patch.dict(sys.modules, {"chromadb": mock_module}):
-            from agentweave.rag.vectorstore.chroma import ChromaVectorStore
+            from agentchord.rag.vectorstore.chroma import ChromaVectorStore
 
             store = ChromaVectorStore(collection_name="test")
             store._collection = None
@@ -771,7 +771,7 @@ class TestChromaVectorStore:
         mock_module, mock_client, mock_collection = self._make_mock_chromadb()
 
         with patch.dict(sys.modules, {"chromadb": mock_module}):
-            from agentweave.rag.vectorstore.chroma import ChromaVectorStore
+            from agentchord.rag.vectorstore.chroma import ChromaVectorStore
 
             store = ChromaVectorStore(
                 collection_name="test", persist_directory="/tmp/chroma"
@@ -798,7 +798,7 @@ class TestWebLoaderRegexFallback:
 
     def test_regex_fallback_extracts_text(self):
         """When bs4 is unavailable, regex extracts text from HTML."""
-        from agentweave.rag.loaders.web import WebLoader
+        from agentchord.rag.loaders.web import WebLoader
 
         html = "<html><body><p>Hello</p><div>World</div></body></html>"
 
@@ -811,7 +811,7 @@ class TestWebLoaderRegexFallback:
 
     def test_regex_fallback_removes_script_tags(self):
         """Regex fallback strips script blocks entirely."""
-        from agentweave.rag.loaders.web import WebLoader
+        from agentchord.rag.loaders.web import WebLoader
 
         html = (
             "<html><head><script>alert('xss');</script></head>"
@@ -826,7 +826,7 @@ class TestWebLoaderRegexFallback:
 
     def test_regex_fallback_removes_style_tags(self):
         """Regex fallback strips style blocks entirely."""
-        from agentweave.rag.loaders.web import WebLoader
+        from agentchord.rag.loaders.web import WebLoader
 
         html = (
             "<html><head><style>.red { color: red; }</style></head>"
@@ -841,7 +841,7 @@ class TestWebLoaderRegexFallback:
 
     def test_regex_fallback_normalizes_whitespace(self):
         """Regex fallback collapses multiple whitespace to single space."""
-        from agentweave.rag.loaders.web import WebLoader
+        from agentchord.rag.loaders.web import WebLoader
 
         html = "<html><body><p>Word1</p>   <p>Word2</p>\n\n<p>Word3</p></body></html>"
 

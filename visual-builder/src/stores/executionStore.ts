@@ -21,6 +21,8 @@ interface ExecutionState {
   isLoading: boolean;
   /** Error message from last failed operation */
   error: string | null;
+  /** Per-node execution status for real-time visualization */
+  nodeStatuses: Record<string, 'idle' | 'running' | 'completed' | 'failed'>;
 
   /** Fetch executions list, optionally filtered by workflow ID */
   fetchExecutions: (workflowId?: string) => Promise<void>;
@@ -38,6 +40,10 @@ interface ExecutionState {
   resumeExecution: (id: string) => Promise<void>;
   /** Clear error message */
   clearError: () => void;
+  /** Update a single node's execution status */
+  setNodeStatus: (nodeId: string, status: 'idle' | 'running' | 'completed' | 'failed') => void;
+  /** Reset all node statuses to idle */
+  resetNodeStatuses: () => void;
 }
 
 /**
@@ -48,6 +54,7 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
   currentExecution: null,
   isLoading: false,
   error: null,
+  nodeStatuses: {},
 
   fetchExecutions: async (workflowId?: string) => {
     set({ isLoading: true, error: null });
@@ -69,7 +76,13 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
 
     try {
       const execution = await api.executions.get(id);
-      set({ currentExecution: execution, isLoading: false });
+      set((state) => ({
+        currentExecution: execution,
+        executions: state.executions.map((e) =>
+          e.id === execution.id ? execution : e
+        ),
+        isLoading: false,
+      }));
     } catch (error) {
       const message =
         error instanceof ApiError
@@ -83,6 +96,14 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
+      // Refresh list to resolve stale statuses before adding new execution
+      try {
+        const freshExecutions = await api.executions.list(workflowId);
+        set({ executions: freshExecutions });
+      } catch {
+        // Non-critical: proceed with stale list
+      }
+
       const execution = await api.workflows.run(workflowId, input, mode);
 
       set((state) => ({
@@ -145,6 +166,16 @@ export const useExecutionStore = create<ExecutionState>((set, get) => ({
   clearError: () => {
     set({ error: null });
   },
+
+  setNodeStatus: (nodeId, status) => {
+    set((state) => ({
+      nodeStatuses: { ...state.nodeStatuses, [nodeId]: status },
+    }));
+  },
+
+  resetNodeStatuses: () => {
+    set({ nodeStatuses: {} });
+  },
 }));
 
 /**
@@ -170,3 +201,9 @@ export const useExecutionLoading = () =>
  */
 export const useExecutionError = () =>
   useExecutionStore((state) => state.error);
+
+/**
+ * Selector hook for node execution statuses
+ */
+export const useNodeStatuses = () =>
+  useExecutionStore((state) => state.nodeStatuses);

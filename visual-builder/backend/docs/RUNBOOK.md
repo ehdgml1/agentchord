@@ -109,7 +109,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 ```bash
 pip install -r requirements.txt
-pip install -e ../../  # Install agentweave core locally
+pip install -e ../../  # Install agentchord core locally
 ```
 
 #### 4. Initialize Database

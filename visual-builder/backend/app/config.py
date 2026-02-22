@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     ollama_base_url: str = "http://localhost:11434"
     gemini_api_key: str = ""
+    tavily_api_key: str = ""
+
+    # Resend Email
+    resend_api_key: str = ""
+    sender_email_address: str = ""
+
     default_llm_model: str = "gpt-4o-mini"
     llm_timeout: float = 120.0
     llm_max_tokens: int = 4096
@@ -58,6 +64,10 @@ class Settings(BaseSettings):
     embedding_provider: str = "openai"  # "openai", "ollama", "hash" (fallback)
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
+
+    # File Upload
+    upload_dir: str = "uploads"
+    max_upload_size_mb: int = 10
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -98,7 +108,7 @@ class Settings(BaseSettings):
         if self.jwt_secret in weak:
             raise ValueError("JWT_SECRET must be set to a strong value in production")
 
-    model_config = {"env_prefix": "", "case_sensitive": False}
+    model_config = {"env_prefix": "", "case_sensitive": False, "env_file": ("../.env", ".env"), "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 @lru_cache

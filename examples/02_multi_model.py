@@ -10,7 +10,7 @@
 
 import asyncio
 
-from agentweave import Agent
+from agentchord import Agent
 
 
 async def compare_models() -> None:

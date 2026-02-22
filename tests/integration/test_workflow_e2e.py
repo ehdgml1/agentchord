@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import pytest
 
-from agentweave.core.agent import Agent
-from agentweave.core.workflow import Workflow
-from agentweave.core.executor import MergeStrategy
-from agentweave.core.state import WorkflowStatus
-from agentweave.tracking.cost import CostTracker
+from agentchord.core.agent import Agent
+from agentchord.core.workflow import Workflow
+from agentchord.core.executor import MergeStrategy
+from agentchord.core.state import WorkflowStatus
+from agentchord.tracking.cost import CostTracker
 from tests.conftest import MockLLMProvider
 
 
@@ -242,8 +242,8 @@ class TestWorkflowErrorHandling:
     @pytest.mark.asyncio
     async def test_agent_failure_produces_failed_result(self):
         """When an agent fails, workflow returns FAILED status."""
-        from agentweave.llm.base import BaseLLMProvider
-        from agentweave.core.types import LLMResponse, Usage
+        from agentchord.llm.base import BaseLLMProvider
+        from agentchord.core.types import LLMResponse, Usage
 
         class FailingProvider(BaseLLMProvider):
             @property
@@ -291,7 +291,7 @@ class TestParallelFailureHandling:
     @pytest.mark.asyncio
     async def test_parallel_one_fails(self):
         """When one parallel agent fails, workflow reports FAILED."""
-        from agentweave.llm.base import BaseLLMProvider
+        from agentchord.llm.base import BaseLLMProvider
 
         class FailingProvider(BaseLLMProvider):
             @property

@@ -157,41 +157,6 @@ describe('PropertiesPanel', () => {
     expect(screen.getByRole('button', { name: /delete block/i })).toBeInTheDocument();
   });
 
-  it('does NOT show Delete Block for start node', () => {
-    vi.mocked(useSelectedNode).mockReturnValue({
-      id: 'start-node',
-      type: BlockType.START,
-      position: { x: 0, y: 0 },
-      data: {},
-    });
-    render(<PropertiesPanel />);
-    expect(screen.queryByRole('button', { name: /delete block/i })).not.toBeInTheDocument();
-  });
-
-  it('shows info text for start node', () => {
-    vi.mocked(useSelectedNode).mockReturnValue({
-      id: 'start-node',
-      type: BlockType.START,
-      position: { x: 0, y: 0 },
-      data: {},
-    });
-    render(<PropertiesPanel />);
-    expect(screen.getByText(/entry point/i)).toBeInTheDocument();
-    expect(screen.getByText(/cannot be configured or deleted/i)).toBeInTheDocument();
-  });
-
-  it('shows info text for end node', () => {
-    vi.mocked(useSelectedNode).mockReturnValue({
-      id: 'end-node',
-      type: BlockType.END,
-      position: { x: 0, y: 0 },
-      data: {},
-    });
-    render(<PropertiesPanel />);
-    expect(screen.getByText(/exit point/i)).toBeInTheDocument();
-    expect(screen.getByText(/cannot be configured or deleted/i)).toBeInTheDocument();
-  });
-
   it('close button calls selectNode(null)', async () => {
     const user = userEvent.setup();
     vi.mocked(useSelectedNode).mockReturnValue({

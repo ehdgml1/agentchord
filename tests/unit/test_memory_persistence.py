@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from agentweave.memory.base import MemoryEntry
-from agentweave.memory.conversation import ConversationMemory
-from agentweave.memory.stores import JSONFileStore, SQLiteStore
+from agentchord.memory.base import MemoryEntry
+from agentchord.memory.conversation import ConversationMemory
+from agentchord.memory.stores import JSONFileStore, SQLiteStore
 
 # Check if aiosqlite is available
 try:

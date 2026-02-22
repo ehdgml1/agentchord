@@ -13,12 +13,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agentweave.core.agent import Agent
-from agentweave.core.types import LLMResponse, Message, StreamChunk, Usage
-from agentweave.errors.exceptions import ModelNotFoundError
-from agentweave.llm.base import BaseLLMProvider
-from agentweave.llm.registry import ProviderRegistry, get_registry
-from agentweave.resilience import (
+from agentchord.core.agent import Agent
+from agentchord.core.types import LLMResponse, Message, StreamChunk, Usage
+from agentchord.errors.exceptions import ModelNotFoundError
+from agentchord.llm.base import BaseLLMProvider
+from agentchord.llm.registry import ProviderRegistry, get_registry
+from agentchord.resilience import (
     CircuitBreaker,
     CircuitOpenError,
     ResilienceConfig,
@@ -243,7 +243,7 @@ class TestRetryIntegration:
             resilience=config,
         )
 
-        from agentweave.errors.exceptions import AgentExecutionError
+        from agentchord.errors.exceptions import AgentExecutionError
         with pytest.raises(AgentExecutionError):
             await agent.run("Test")
 
@@ -287,7 +287,7 @@ class TestCircuitBreakerIntegration:
             resilience=config,
         )
 
-        from agentweave.errors.exceptions import AgentExecutionError
+        from agentchord.errors.exceptions import AgentExecutionError
 
         # First 2 calls fail normally (provider gets called)
         with pytest.raises(AgentExecutionError):
@@ -328,7 +328,7 @@ class TestTimeoutIntegration:
             resilience=config,
         )
 
-        from agentweave.errors.exceptions import AgentExecutionError
+        from agentchord.errors.exceptions import AgentExecutionError
         with pytest.raises(AgentExecutionError):
             await agent.run("Test")
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AgentWeave Multi-Agent Team Example.
+"""AgentChord Multi-Agent Team Example.
 
 Shows how to create a team of agents that collaborate using
 the coordinator strategy (delegation via tools).
@@ -12,7 +12,7 @@ the coordinator strategy (delegation via tools).
 """
 import asyncio
 
-from agentweave import Agent, AgentTeam
+from agentchord import Agent, AgentTeam
 
 
 async def main():

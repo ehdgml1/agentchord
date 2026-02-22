@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from agentweave.core.agent import Agent
-from agentweave.core.types import ToolCall, Usage
-from agentweave.memory.conversation import ConversationMemory
-from agentweave.tracking.cost import CostTracker
-from agentweave.tracking.callbacks import CallbackManager
+from agentchord.core.agent import Agent
+from agentchord.core.types import ToolCall, Usage
+from agentchord.memory.conversation import ConversationMemory
+from agentchord.tracking.cost import CostTracker
+from agentchord.tracking.callbacks import CallbackManager
 from tests.conftest import MockLLMProvider, MockToolCallProvider
 
 

@@ -18,7 +18,8 @@ class TestMCPCatalog:
             assert server.id, f"Server missing ID: {server}"
             assert server.name, f"Server {server.id} missing name"
             assert server.category, f"Server {server.id} missing category"
-            assert server.command, f"Server {server.id} missing command"
+            if not server.builtin:
+                assert server.command, f"Server {server.id} missing command"
             assert isinstance(server.args, list), (
                 f"Server {server.id} args must be a list"
             )
@@ -69,11 +70,13 @@ class TestMCPCatalog:
             )
 
     def test_servers_have_packages(self):
-        """Test all servers have package names."""
+        """Test all non-builtin servers have package names."""
         for server in MCP_CATALOG:
+            if server.builtin:
+                continue
             assert server.package, f"Server {server.id} missing package"
             # Package should contain valid npm package name
-            assert "/" in server.package or "mcp-server" in server.package, (
+            assert "/" in server.package or "mcp" in server.package, (
                 f"Server {server.id} has invalid package format: {server.package}"
             )
 

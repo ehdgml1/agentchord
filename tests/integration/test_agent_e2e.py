@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import pytest
 
-from agentweave.core.agent import Agent
-from agentweave.core.types import StreamChunk, ToolCall
-from agentweave.memory.conversation import ConversationMemory
-from agentweave.tools.decorator import tool
-from agentweave.tracking.callbacks import CallbackContext, CallbackEvent, CallbackManager
-from agentweave.tracking.cost import CostTracker
+from agentchord.core.agent import Agent
+from agentchord.core.types import StreamChunk, ToolCall
+from agentchord.memory.conversation import ConversationMemory
+from agentchord.tools.decorator import tool
+from agentchord.tracking.callbacks import CallbackContext, CallbackEvent, CallbackManager
+from agentchord.tracking.cost import CostTracker
 from tests.conftest import MockLLMProvider, MockToolCallProvider
 
 
@@ -290,7 +290,7 @@ class TestAgentMCPIntegration:
         """setup_mcp converts MCP tools and registers them."""
         from unittest.mock import AsyncMock, MagicMock
 
-        from agentweave.protocols.mcp.types import MCPTool, MCPToolResult
+        from agentchord.protocols.mcp.types import MCPTool, MCPToolResult
 
         # Mock MCP client
         mock_mcp = MagicMock()
@@ -330,7 +330,7 @@ class TestAgentMCPIntegration:
         """Agent can execute MCP tools in a tool-calling loop."""
         from unittest.mock import AsyncMock, MagicMock
 
-        from agentweave.protocols.mcp.types import MCPTool, MCPToolResult
+        from agentchord.protocols.mcp.types import MCPTool, MCPToolResult
 
         mock_mcp = MagicMock()
         mock_mcp.list_tools = AsyncMock(

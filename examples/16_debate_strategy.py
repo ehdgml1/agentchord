@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AgentWeave Debate Strategy Example.
+"""AgentChord Debate Strategy Example.
 
 Shows agents debating a topic and reaching consensus.
 
@@ -8,7 +8,7 @@ Shows agents debating a topic and reaching consensus.
 """
 import asyncio
 
-from agentweave import Agent, AgentTeam
+from agentchord import Agent, AgentTeam
 
 
 async def main():

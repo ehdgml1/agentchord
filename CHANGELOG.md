@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to AgentWeave will be documented in this file.
+All notable changes to AgentChord will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- **Multi-Agent Orchestration** (`agentweave.orchestration`)
+- **Multi-Agent Orchestration** (`agentchord.orchestration`)
   - `AgentTeam` class with 4 built-in strategies: Coordinator, Round Robin, Debate, Map Reduce
   - Delegation-as-tools pattern for natural language-driven task routing via coordinator
   - `MessageBus` for structured agent-to-agent communication (async pub/sub with message history)
@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Streaming**: `Agent.stream()` with hybrid tool-calling support (complete() for tool rounds, stream for final response)
 - **Cost Tracking**: `CostTracker` with per-model pricing, budget limits, and `TokenUsage` aggregation
 - **Resilience**: `RetryPolicy`, `CircuitBreaker`, `TimeoutManager` with configurable `ResilienceConfig`
-- **OpenTelemetry**: `AgentWeaveTracer` with context manager spans for agent/workflow/LLM/tool operations, `AgentWeaveMetrics` counters and histograms, graceful no-op fallback
+- **OpenTelemetry**: `AgentChordTracer` with context manager spans for agent/workflow/LLM/tool operations, `AgentChordMetrics` counters and histograms, graceful no-op fallback
 - **Trace Collector**: `TraceCollector` with `TraceSpan`/`ExecutionTrace` dataclasses, callback-driven span hierarchy, JSON/JSONL export
 - **Lifecycle Management**: Agent and Workflow async context managers (`async with`) for automatic memory flush, MCP disconnect, and cleanup
 - **Structured Logging**: `get_logger()`, `configure_logging()`, `LogLevel` with JSON and text output modes
@@ -67,4 +67,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - OpenAI embedding batch size limit (2048) enforcement
 - Format string injection prevention in RAG prompt templates
 
-[0.1.0]: https://github.com/agentweave/agentweave/releases/tag/v0.1.0
+[0.1.0]: https://github.com/agentchord/agentchord/releases/tag/v0.1.0

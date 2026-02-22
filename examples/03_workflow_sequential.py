@@ -11,8 +11,8 @@
     python examples/03_workflow_sequential.py
 """
 
-from agentweave import Agent
-from agentweave.core.workflow import Workflow
+from agentchord import Agent
+from agentchord.core.workflow import Workflow
 
 
 def main() -> None:
@@ -54,7 +54,7 @@ def main() -> None:
     )
 
     print("=" * 60)
-    print("AgentWeave Sequential Workflow")
+    print("AgentChord Sequential Workflow")
     print("=" * 60)
     print("Flow: researcher -> writer -> reviewer")
     print("=" * 60)

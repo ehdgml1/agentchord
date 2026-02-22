@@ -7,15 +7,15 @@ import time
 
 import pytest
 
-from agentweave.resilience.retry import RetryPolicy, RetryStrategy
-from agentweave.resilience.circuit_breaker import (
+from agentchord.resilience.retry import RetryPolicy, RetryStrategy
+from agentchord.resilience.circuit_breaker import (
     CircuitBreaker,
     CircuitState,
     CircuitOpenError,
 )
-from agentweave.resilience.timeout import TimeoutManager
-from agentweave.resilience.config import ResilienceConfig, create_default_resilience
-from agentweave.errors.exceptions import RateLimitError, TimeoutError
+from agentchord.resilience.timeout import TimeoutManager
+from agentchord.resilience.config import ResilienceConfig, create_default_resilience
+from agentchord.errors.exceptions import RateLimitError, TimeoutError
 
 
 class TestRetryPolicy:

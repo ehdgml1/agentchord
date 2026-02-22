@@ -1,7 +1,7 @@
 """Tests for RAG pipeline."""
 import pytest
-from agentweave.rag.pipeline import RAGPipeline
-from agentweave.rag.types import Document, RetrievalResult
+from agentchord.rag.pipeline import RAGPipeline
+from agentchord.rag.types import Document, RetrievalResult
 from tests.conftest import MockLLMProvider, MockEmbeddingProvider
 
 
@@ -24,9 +24,9 @@ class TestRAGPipeline:
 
     async def test_retrieve_after_ingest(self, pipeline, sample_documents):
         await pipeline.ingest_documents(sample_documents)
-        result = await pipeline.retrieve("AgentWeave")
+        result = await pipeline.retrieve("AgentChord")
         assert isinstance(result, RetrievalResult)
-        assert result.query == "AgentWeave"
+        assert result.query == "AgentChord"
 
     async def test_generate(self, pipeline):
         retrieval = RetrievalResult(query="test")
@@ -36,9 +36,9 @@ class TestRAGPipeline:
 
     async def test_query_end_to_end(self, pipeline, sample_documents):
         await pipeline.ingest_documents(sample_documents)
-        response = await pipeline.query("What is AgentWeave?")
+        response = await pipeline.query("What is AgentChord?")
         assert response.answer == "Generated answer"
-        assert response.query == "What is AgentWeave?"
+        assert response.query == "What is AgentChord?"
 
     async def test_clear(self, pipeline, sample_documents):
         await pipeline.ingest_documents(sample_documents)
@@ -76,14 +76,14 @@ class TestRAGPipeline:
 
     async def test_generate_returns_source_documents(self, pipeline, sample_documents):
         await pipeline.ingest_documents(sample_documents)
-        retrieval = await pipeline.retrieve("AgentWeave")
-        response = await pipeline.generate("What is AgentWeave?", retrieval)
+        retrieval = await pipeline.retrieve("AgentChord")
+        response = await pipeline.generate("What is AgentChord?", retrieval)
         # source_documents should contain unique document_ids from results
         assert isinstance(response.source_documents, list)
 
     async def test_retrieve_with_limit(self, pipeline, sample_documents):
         await pipeline.ingest_documents(sample_documents)
-        result = await pipeline.retrieve("AgentWeave", limit=1)
+        result = await pipeline.retrieve("AgentChord", limit=1)
         assert len(result.results) <= 1
 
     async def test_ingested_count_accumulates(self, pipeline):

@@ -9,6 +9,8 @@ vi.mock('../../stores/mcpStore', () => ({
       { name: 'filesystem', command: 'npx', args: [], env: {} },
     ],
     connectServer: vi.fn(),
+    error: null,
+    clearError: vi.fn(),
   })),
 }));
 
@@ -145,6 +147,8 @@ describe('MCPMarketplace', () => {
     vi.mocked(mcpStore.useMCPStore).mockReturnValue({
       servers: [],
       connectServer: mockConnectServer,
+      error: null,
+      clearError: vi.fn(),
     });
 
     render(<MCPMarketplace onClose={mockOnClose} />);
@@ -164,5 +168,56 @@ describe('MCPMarketplace', () => {
     // The component would show "No servers found" but due to the way filtering works
     // we need to verify the filtering logic is in place
     expect(searchInput).toHaveValue('nonexistent');
+  });
+
+  it('correctly detects installed servers by name', async () => {
+    const mcpStore = await import('../../stores/mcpStore');
+    vi.mocked(mcpStore.useMCPStore).mockReturnValue({
+      servers: [
+        { name: 'Markdown to PDF', command: 'npx', args: [], env: {} },
+      ],
+      connectServer: vi.fn(),
+      error: null,
+      clearError: vi.fn(),
+    });
+
+    render(<MCPMarketplace onClose={mockOnClose} />);
+
+    // The filesystem card should NOT be marked as installed
+    // since "filesystem" !== "Markdown to PDF"
+    const filesystemCard = screen.getByTestId('server-card-filesystem');
+    expect(filesystemCard).toHaveTextContent('Install');
+  });
+
+  it('displays error message when server installation fails', async () => {
+    const mcpStore = await import('../../stores/mcpStore');
+    vi.mocked(mcpStore.useMCPStore).mockReturnValue({
+      servers: [],
+      connectServer: vi.fn(),
+      error: 'Failed to connect MCP server: connection timeout',
+      clearError: vi.fn(),
+    });
+
+    render(<MCPMarketplace onClose={mockOnClose} />);
+
+    expect(screen.getByText('Failed to connect MCP server: connection timeout')).toBeInTheDocument();
+  });
+
+  it('can clear error message', async () => {
+    const mockClearError = vi.fn();
+    const mcpStore = await import('../../stores/mcpStore');
+    vi.mocked(mcpStore.useMCPStore).mockReturnValue({
+      servers: [],
+      connectServer: vi.fn(),
+      error: 'Some error',
+      clearError: mockClearError,
+    });
+
+    render(<MCPMarketplace onClose={mockOnClose} />);
+
+    const closeButton = screen.getByText('×');
+    fireEvent.click(closeButton);
+
+    expect(mockClearError).toHaveBeenCalled();
   });
 });

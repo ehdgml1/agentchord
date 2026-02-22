@@ -80,11 +80,14 @@ export const MCPHub = memo(function MCPHub({ className }: MCPHubProps) {
             const isConnected = server.status === 'connected';
 
             return (
-              <div key={server.id} className="border rounded-lg overflow-hidden">
-                <button
+              <div key={server.id} className="group border rounded-lg overflow-hidden">
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => toggleServer(server.id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleServer(server.id); } }}
                   className={cn(
-                    'w-full flex items-center gap-2 p-2 hover:bg-accent transition-colors text-left',
+                    'w-full flex items-center gap-2 p-2 hover:bg-accent transition-colors text-left cursor-pointer',
                     isConnected && 'bg-accent/50'
                   )}
                 >
@@ -112,7 +115,7 @@ export const MCPHub = memo(function MCPHub({ className }: MCPHubProps) {
                       <PowerOff className="w-3 h-3" />
                     </Button>
                   )}
-                </button>
+                </div>
 
                 {isExpanded && (
                   <div className="border-t bg-muted/30">
@@ -154,7 +157,7 @@ export const MCPHub = memo(function MCPHub({ className }: MCPHubProps) {
       </div>
 
       <Dialog open={showMarketplace} onOpenChange={setShowMarketplace}>
-        <DialogContent className="max-w-3xl h-[80vh]">
+        <DialogContent className="max-w-3xl h-[80vh] overflow-hidden flex flex-col">
           <Suspense fallback={<div className="flex items-center justify-center h-full text-muted-foreground">Loading...</div>}>
             <MCPMarketplace onClose={() => setShowMarketplace(false)} />
           </Suspense>

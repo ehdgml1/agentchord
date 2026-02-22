@@ -6,7 +6,7 @@ from datetime import datetime
 
 import pytest
 
-from agentweave.protocols.a2a.types import (
+from agentchord.protocols.a2a.types import (
     AgentCard,
     AgentSkill,
     A2AMessage,

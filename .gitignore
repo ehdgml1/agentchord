@@ -27,10 +27,11 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Virtual environments
-.env
 .venv
 env/
 venv/
+**/venv/
+**/.*venv/
 ENV/
 env.bak/
 venv.bak/
@@ -69,6 +70,9 @@ test-results/
 # ============================================
 .env
 .env.*
+.env.local
+.env.production
+.env.*.local
 !.env.example
 *.pem
 *.key
@@ -152,6 +156,43 @@ Desktop.ini
 # ============================================
 *.mo
 *.pot
+
+# ============================================
+# User Uploads
+# ============================================
+uploads/
+
+# ============================================
+# Playwright
+# ============================================
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+# ============================================
+# Internal Work Documents
+# ============================================
+ORCHESTRATION_IMPROVEMENT_PLAN.md
+docs/TOOL_HUB_IMPLEMENTATION_PLAN.md
+docs/VISUAL_BUILDER_SPEC.md
+visual-builder/PROGRESS.md
+visual-builder/PHASE2_IMPLEMENTATION.md
+visual-builder/PHASE_6.2_INFRASTRUCTURE.md
+visual-builder/EXECUTION_COMPONENTS_SUMMARY.md
+visual-builder/AGENTWEAVE_CODEGEN_EXPANSION.md
+visual-builder/docs/ROADMAP_PHASE4_5_6.md
+visual-builder/src/components/ExecutionPanel/INTEGRATION_GUIDE.md
+visual-builder/backend/PHASE_0_FILES.md
+visual-builder/backend/PHASE_0_IMPLEMENTATION.md
+visual-builder/backend/PHASE0_IMPLEMENTATION.md
+visual-builder/backend/IMPLEMENTATION_SUMMARY.md
+visual-builder/backend/IDOR_FIXES.md
+visual-builder/backend/SECURITY_FIX_C5.md
+visual-builder/backend/SECURITY_FIX_IDOR.md
+visual-builder/backend/SQL_FIXES_SUMMARY.md
+visual-builder/backend/API_ENDPOINTS_SUMMARY.md
+visual-builder/backend/docs/ISSUES_TRACKER.md
 
 # ============================================
 # Claude / AI Tools

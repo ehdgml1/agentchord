@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Tool System Example.
 
-이 예제는 AgentWeave의 Tool 시스템 사용법을 보여줍니다.
+이 예제는 AgentChord의 Tool 시스템 사용법을 보여줍니다.
 
 실행:
     python examples/09_tools.py
@@ -10,7 +10,7 @@
 import asyncio
 import json
 
-from agentweave.tools import Tool, ToolParameter, ToolResult, tool, ToolExecutor
+from agentchord.tools import Tool, ToolParameter, ToolResult, tool, ToolExecutor
 
 
 def demo_tool_decorator() -> None:
@@ -123,7 +123,7 @@ def demo_schema_conversion() -> None:
 async def main() -> None:
     """메인 함수."""
     print("\n" + "=" * 60)
-    print("AgentWeave Tool System Examples")
+    print("AgentChord Tool System Examples")
     print("=" * 60)
 
     demo_tool_decorator()

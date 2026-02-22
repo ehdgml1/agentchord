@@ -1,11 +1,11 @@
 /**
- * Demo: AgentWeave Code Generator Examples
+ * Demo: AgentChord Code Generator Examples
  *
  * This file demonstrates various workflow patterns and their generated Python code.
  * Run this file to see console output of generated code.
  */
 
-import { AgentWeaveGenerator } from './agentweave';
+import { AgentChordGenerator } from './agentchord';
 import { BlockType } from '../../types/blocks';
 import type { WorkflowNode, WorkflowEdge } from '../../types/workflow';
 import type {
@@ -69,7 +69,7 @@ const edge = (from: string, to: string, cond?: 'true' | 'false'): WorkflowEdge =
 });
 
 // Demo workflows
-const generator = new AgentWeaveGenerator();
+const generator = new AgentChordGenerator();
 
 const demo1 = generator.generate(
   [agent('a1', 'Analyzer'), agent('a2', 'Processor'), agent('a3', 'Summarizer')],

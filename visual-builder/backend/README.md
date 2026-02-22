@@ -22,7 +22,7 @@ source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
-pip install -e ../../  # Install agentweave core
+pip install -e ../../  # Install agentchord core
 
 # Set required environment variables
 export JWT_SECRET=$(python -c "import secrets; print(secrets.token_urlsafe(32))")
@@ -639,7 +639,7 @@ See `LICENSE` file in repository root.
 ## Related Projects
 
 - **Visual Builder Frontend**: `../../visual-builder/src`
-- **AgentWeave Core**: `../../agentweave/core`
+- **AgentChord Core**: `../../agentchord/core`
 - **MCP Specification**: https://spec.modelcontextprotocol.io
 
 ---

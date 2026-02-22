@@ -81,6 +81,7 @@ export function ImportDialog({ open, onOpenChange, onImport }: ImportDialogProps
     if (file) {
       handleFileSelect(file);
     }
+    e.target.value = '';
   }, [handleFileSelect]);
 
   // Handle drag and drop

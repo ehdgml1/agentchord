@@ -106,6 +106,9 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
       model: '',
       temperature: 0.3,
       maxTokens: 1024,
+      embeddingProvider: undefined,
+      embeddingModel: undefined,
+      embeddingDimensions: undefined,
     } satisfies RAGBlockData,
   },
   {

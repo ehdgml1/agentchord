@@ -105,9 +105,9 @@ describe('Header', () => {
     vi.clearAllMocks();
   });
 
-  it('renders AgentWeave logo', () => {
+  it('renders AgentChord logo', () => {
     render(<Header />);
-    expect(screen.getByText('AgentWeave')).toBeInTheDocument();
+    expect(screen.getByText('AgentChord')).toBeInTheDocument();
   });
 
   it('renders workflow name', () => {

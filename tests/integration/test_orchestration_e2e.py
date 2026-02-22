@@ -5,11 +5,11 @@ from typing import Any
 
 import pytest
 
-from agentweave.core.agent import Agent
-from agentweave.orchestration.message_bus import MessageBus
-from agentweave.orchestration.shared_context import SharedContext
-from agentweave.orchestration.team import AgentTeam
-from agentweave.orchestration.types import (
+from agentchord.core.agent import Agent
+from agentchord.orchestration.message_bus import MessageBus
+from agentchord.orchestration.shared_context import SharedContext
+from agentchord.orchestration.team import AgentTeam
+from agentchord.orchestration.types import (
     TeamMember,
     TeamResult,
     TeamRole,
@@ -124,8 +124,8 @@ class TestFullMapReduceWorkflow:
         # 3 map outputs + 1 reduce output = 4
         assert len(result.agent_outputs) == 4
         assert result.total_tokens > 0
-        # Messages: 3 task + 3 result = 6 messages in bus
-        assert bus.message_count == 6
+        # Messages: 3 map TASK + 3 map RESULT + 1 reduce TASK + 1 reduce RESULT = 8
+        assert bus.message_count == 8
 
 
 class TestTeamWithSharedContext:

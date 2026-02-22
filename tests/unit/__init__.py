@@ -1,1 +1,1 @@
-"""Unit tests for AgentWeave."""
+"""Unit tests for AgentChord."""

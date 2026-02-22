@@ -8,13 +8,13 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from agentweave.telemetry.collector import (
+from agentchord.telemetry.collector import (
     ExecutionTrace,
     TraceCollector,
     TraceSpan,
     export_traces_jsonl,
 )
-from agentweave.tracking.callbacks import CallbackContext, CallbackEvent
+from agentchord.tracking.callbacks import CallbackContext, CallbackEvent
 
 
 class TestTraceSpan:

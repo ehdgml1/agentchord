@@ -6,18 +6,18 @@ from typing import Any
 
 import pytest
 
-from agentweave.core.agent import Agent
-from agentweave.orchestration.message_bus import MessageBus
-from agentweave.orchestration.shared_context import SharedContext
-from agentweave.orchestration.team import AgentTeam
-from agentweave.orchestration.types import (
+from agentchord.core.agent import Agent
+from agentchord.orchestration.message_bus import MessageBus
+from agentchord.orchestration.shared_context import SharedContext
+from agentchord.orchestration.team import AgentTeam
+from agentchord.orchestration.types import (
     OrchestrationStrategy,
     TeamEvent,
     TeamMember,
     TeamResult,
     TeamRole,
 )
-from agentweave.tracking.callbacks import CallbackManager
+from agentchord.tracking.callbacks import CallbackEvent, CallbackManager
 
 from tests.conftest import MockLLMProvider
 
@@ -358,10 +358,11 @@ class TestAgentTeamCallbacks:
     @pytest.mark.asyncio
     async def test_callbacks_emitted(self) -> None:
         """Callbacks are emitted during team execution."""
-        emitted: list[str] = []
+        emitted: list[CallbackEvent] = []
 
         async def _track(ctx: Any) -> None:
-            emitted.append(str(ctx.event) if hasattr(ctx, "event") else str(ctx))
+            if hasattr(ctx, "event"):
+                emitted.append(ctx.event)
 
         cb = CallbackManager()
         cb.register_global(_track)
@@ -377,9 +378,8 @@ class TestAgentTeamCallbacks:
 
         await team.run("Callback task")
         # Should have emitted orchestration_start and orchestration_end at minimum
-        event_strings = " ".join(emitted)
-        assert "orchestration_start" in event_strings
-        assert "orchestration_end" in event_strings
+        assert CallbackEvent.ORCHESTRATION_START in emitted
+        assert CallbackEvent.ORCHESTRATION_END in emitted
 
 
 class TestAgentTeamResultMetadata:

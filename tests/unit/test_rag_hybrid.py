@@ -1,9 +1,9 @@
 """Tests for hybrid search and RRF fusion."""
 import pytest
-from agentweave.rag.search.hybrid import HybridSearch
-from agentweave.rag.search.bm25 import BM25Search
-from agentweave.rag.types import Chunk, SearchResult
-from agentweave.rag.vectorstore.in_memory import InMemoryVectorStore
+from agentchord.rag.search.hybrid import HybridSearch
+from agentchord.rag.search.bm25 import BM25Search
+from agentchord.rag.types import Chunk, SearchResult
+from agentchord.rag.vectorstore.in_memory import InMemoryVectorStore
 
 
 class TestRRFFusion:
@@ -90,15 +90,15 @@ class TestHybridSearch:
 
     async def test_add_and_search(self, hybrid):
         chunks = [
-            Chunk(id="c1", content="AgentWeave multi-agent framework"),
+            Chunk(id="c1", content="AgentChord multi-agent framework"),
             Chunk(id="c2", content="Python programming language"),
         ]
         ids = await hybrid.add(chunks)
         assert len(ids) == 2
 
-        result = await hybrid.search("AgentWeave framework")
+        result = await hybrid.search("AgentChord framework")
         assert len(result.results) > 0
-        assert result.query == "AgentWeave framework"
+        assert result.query == "AgentChord framework"
 
     async def test_search_empty_query(self, hybrid):
         result = await hybrid.search("   ")

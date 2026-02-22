@@ -33,3 +33,6 @@ simpleeval>=1.0.0
 
 # Rate Limiting
 slowapi>=0.1.9
+
+# File Upload
+python-multipart>=0.0.6

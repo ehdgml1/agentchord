@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, Field, ValidationError
 
-from agentweave.core.structured import OutputSchema
+from agentchord.core.structured import OutputSchema
 
 
 class Person(BaseModel):

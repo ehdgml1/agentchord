@@ -2,7 +2,7 @@
 
 # Default target
 help:
-	@echo "AgentWeave Visual Builder"
+	@echo "AgentChord Visual Builder"
 	@echo ""
 	@echo "Development:"
 	@echo "  make dev            - Start backend and frontend (requires 2 terminals)"

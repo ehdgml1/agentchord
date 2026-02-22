@@ -29,6 +29,9 @@ vi.mock('../ui', () => ({
   ),
   CardContent: ({ children }: any) => <div data-testid="card-content">{children}</div>,
   CardFooter: ({ children }: any) => <div data-testid="card-footer">{children}</div>,
+  Input: ({ type, placeholder, value, onChange, className }: any) => (
+    <input type={type} placeholder={placeholder} value={value} onChange={onChange} className={className} />
+  ),
 }));
 
 describe('ServerCard', () => {
@@ -104,25 +107,38 @@ describe('ServerCard', () => {
     const installButton = screen.getByText('Install');
     fireEvent.click(installButton);
 
-    expect(mockOnInstall).toHaveBeenCalledWith(mockServer);
+    expect(mockOnInstall).toHaveBeenCalledWith(mockServer, {});
   });
 
-  it('displays required secrets warning when present', () => {
+  it('displays API key input fields when secrets required', () => {
     const serverWithSecrets = {
       ...mockServer,
       requiredSecrets: ['API_KEY', 'SECRET_TOKEN'],
     };
     render(<ServerCard server={serverWithSecrets} isInstalled={false} onInstall={mockOnInstall} />);
 
-    expect(screen.getByText('Required secrets:')).toBeInTheDocument();
+    expect(screen.getByText('API Keys')).toBeInTheDocument();
     expect(screen.getByText('API_KEY')).toBeInTheDocument();
     expect(screen.getByText('SECRET_TOKEN')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter API_KEY')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter SECRET_TOKEN')).toBeInTheDocument();
   });
 
-  it('does not display secrets section when no secrets required', () => {
+  it('does not display API key section when no secrets required', () => {
     render(<ServerCard server={mockServer} isInstalled={false} onInstall={mockOnInstall} />);
 
-    expect(screen.queryByText('Required secrets:')).not.toBeInTheDocument();
+    expect(screen.queryByText('API Keys')).not.toBeInTheDocument();
+  });
+
+  it('disables install button when required secrets are not filled', () => {
+    const serverWithSecrets = {
+      ...mockServer,
+      requiredSecrets: ['API_KEY'],
+    };
+    render(<ServerCard server={serverWithSecrets} isInstalled={false} onInstall={mockOnInstall} />);
+
+    const installButton = screen.getByText('Install');
+    expect(installButton).toBeDisabled();
   });
 
   it('renders card structure', () => {

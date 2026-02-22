@@ -24,7 +24,7 @@ from app.config import get_settings
 from app.logging_config import setup_logging
 from app.core.rate_limiter import limiter
 
-from .api import auth, webhooks, workflows, executions, mcp, secrets, schedules, debug_ws, versions, ab_tests, audit, users, llm
+from .api import auth, webhooks, workflows, executions, mcp, secrets, schedules, debug_ws, versions, ab_tests, audit, users, llm, playground, documents
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -273,6 +273,10 @@ For interactive testing, access the Swagger UI at `/docs` or ReDoc at `/redoc`.
             "name": "llm",
             "description": "LLM provider management - View available AI models, check provider configuration status, and manage LLM settings.",
         },
+        {
+            "name": "playground",
+            "description": "Playground chat interface - Execute workflows with chat-style interface and conversation history support.",
+        },
     ],
     docs_url="/docs" if not settings.is_production else None,
     redoc_url="/redoc" if not settings.is_production else None,
@@ -507,6 +511,8 @@ app.include_router(ab_tests.router)
 app.include_router(audit.router)
 app.include_router(users.router)
 app.include_router(llm.router)
+app.include_router(playground.router)
+app.include_router(documents.router)
 
 
 # === Root Endpoint ===

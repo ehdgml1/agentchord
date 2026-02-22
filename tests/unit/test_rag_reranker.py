@@ -9,9 +9,9 @@ from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
-from agentweave.core.types import LLMResponse, Usage
-from agentweave.rag.search.reranker import CrossEncoderReranker, LLMReranker
-from agentweave.rag.types import Chunk, SearchResult
+from agentchord.core.types import LLMResponse, Usage
+from agentchord.rag.search.reranker import CrossEncoderReranker, LLMReranker
+from agentchord.rag.types import Chunk, SearchResult
 
 
 def _make_result(id: str, content: str, score: float = 0.5) -> SearchResult:
@@ -29,7 +29,7 @@ class TestCrossEncoderReranker:
     def test_import_error_when_sentence_transformers_missing(self) -> None:
         """ImportError raised when sentence-transformers not installed."""
         with patch(
-            "agentweave.rag.search.reranker.CrossEncoderReranker._get_model"
+            "agentchord.rag.search.reranker.CrossEncoderReranker._get_model"
         ) as mock_get_model:
             mock_get_model.side_effect = ImportError(
                 "sentence-transformers is required for CrossEncoderReranker. "
@@ -60,7 +60,7 @@ class TestCrossEncoderReranker:
         mock_model.predict.return_value = [0.3, 0.9, 0.7]  # 2nd best, 1st best, 3rd best
 
         with patch(
-            "agentweave.rag.search.reranker.CrossEncoderReranker._get_model",
+            "agentchord.rag.search.reranker.CrossEncoderReranker._get_model",
             return_value=mock_model,
         ):
             reranker = CrossEncoderReranker.__new__(CrossEncoderReranker)
@@ -102,7 +102,7 @@ class TestCrossEncoderReranker:
         mock_model.predict.return_value = [0.1, 0.5, 0.9, 0.3, 0.7]
 
         with patch(
-            "agentweave.rag.search.reranker.CrossEncoderReranker._get_model",
+            "agentchord.rag.search.reranker.CrossEncoderReranker._get_model",
             return_value=mock_model,
         ):
             reranker = CrossEncoderReranker.__new__(CrossEncoderReranker)
@@ -124,7 +124,7 @@ class TestCrossEncoderReranker:
         mock_model.predict.return_value = [0.8]
 
         with patch(
-            "agentweave.rag.search.reranker.CrossEncoderReranker._get_model",
+            "agentchord.rag.search.reranker.CrossEncoderReranker._get_model",
             return_value=mock_model,
         ):
             reranker = CrossEncoderReranker.__new__(CrossEncoderReranker)

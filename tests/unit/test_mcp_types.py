@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from agentweave.protocols.mcp.types import (
+from agentchord.protocols.mcp.types import (
     MCPServerConfig,
     MCPTool,
     MCPToolParameter,

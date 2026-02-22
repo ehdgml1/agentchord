@@ -11,11 +11,11 @@ import asyncio
 import hashlib
 from typing import AsyncIterator
 
-from agentweave import RAGPipeline, Document
-from agentweave.core.types import LLMResponse, Message, Usage
-from agentweave.llm.base import BaseLLMProvider
-from agentweave.rag.embeddings.base import EmbeddingProvider
-from agentweave.rag.chunking.recursive import RecursiveCharacterChunker
+from agentchord import RAGPipeline, Document
+from agentchord.core.types import LLMResponse, Message, Usage
+from agentchord.llm.base import BaseLLMProvider
+from agentchord.rag.embeddings.base import EmbeddingProvider
+from agentchord.rag.chunking.recursive import RecursiveCharacterChunker
 
 
 class MockEmbeddingProvider(EmbeddingProvider):

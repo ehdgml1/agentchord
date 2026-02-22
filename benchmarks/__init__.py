@@ -1,1 +1,1 @@
-"""Performance benchmarks for AgentWeave framework."""
+"""Performance benchmarks for AgentChord framework."""

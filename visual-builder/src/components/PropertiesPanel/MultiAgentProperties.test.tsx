@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MultiAgentProperties } from './MultiAgentProperties';
 import type { MultiAgentBlockData } from '../../types/blocks';
@@ -102,12 +102,12 @@ describe('MultiAgentProperties', () => {
     );
   });
 
-  it('shows "No members yet" when members array is empty', () => {
+  it('shows template selector when members array is empty', () => {
     const onChange = vi.fn();
     const emptyData = { ...mockData, members: [] };
     render(<MultiAgentProperties data={emptyData} onChange={onChange} />);
 
-    expect(screen.getByText(/no members yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/quick start templates/i)).toBeInTheDocument();
   });
 
   it('renders Add button', () => {
@@ -220,5 +220,87 @@ describe('MultiAgentProperties', () => {
     // There should be a combobox for strategy
     const selects = screen.getAllByRole('combobox');
     expect(selects.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows coordinator selector when strategy is coordinator and members exist', () => {
+    const onChange = vi.fn();
+    render(<MultiAgentProperties data={mockData} onChange={onChange} />);
+
+    expect(screen.getByLabelText(/coordinator/i)).toBeInTheDocument();
+  });
+
+  it('hides coordinator selector when strategy is not coordinator', () => {
+    const onChange = vi.fn();
+    const nonCoordinatorData = { ...mockData, strategy: 'round_robin' as const };
+    render(<MultiAgentProperties data={nonCoordinatorData} onChange={onChange} />);
+
+    expect(screen.queryByLabelText(/^coordinator$/i)).not.toBeInTheDocument();
+  });
+
+  it('hides coordinator selector when no members exist', () => {
+    const onChange = vi.fn();
+    const noMembersData = { ...mockData, members: [] };
+    render(<MultiAgentProperties data={noMembersData} onChange={onChange} />);
+
+    expect(screen.queryByLabelText(/^coordinator$/i)).not.toBeInTheDocument();
+  });
+
+  it('coordinator selector shows member names', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const multiMemberData = {
+      ...mockData,
+      members: [
+        {
+          id: 'member_1',
+          name: 'Agent One',
+          role: 'worker' as const,
+          model: 'gpt-4o-mini',
+          systemPrompt: '',
+          capabilities: [],
+          temperature: 0.7,
+        },
+        {
+          id: 'member_2',
+          name: 'Agent Two',
+          role: 'worker' as const,
+          model: 'gpt-4o-mini',
+          systemPrompt: '',
+          capabilities: [],
+          temperature: 0.7,
+        },
+      ],
+    };
+    render(<MultiAgentProperties data={multiMemberData} onChange={onChange} />);
+
+    const coordinatorSelect = screen.getByLabelText(/coordinator/i);
+    await user.click(coordinatorSelect);
+
+    // Should show both member names in the dropdown
+    expect(screen.getByText('Agent One')).toBeInTheDocument();
+    expect(screen.getByText('Agent Two')).toBeInTheDocument();
+  });
+
+  it('renders consult toggle unchecked by default', () => {
+    const onChange = vi.fn();
+    const defaultData = { ...mockData, enableConsult: undefined };
+    render(<MultiAgentProperties data={defaultData} onChange={onChange} />);
+    const checkbox = screen.getByLabelText(/consult/i);
+    expect(checkbox).not.toBeChecked();
+  });
+
+  it('shows consult description when consult enabled', () => {
+    const onChange = vi.fn();
+    const data = { ...mockData, enableConsult: true };
+    render(<MultiAgentProperties data={data} onChange={onChange} />);
+    expect(screen.getByText(/다른 Worker에게 질문/)).toBeInTheDocument();
+  });
+
+  it('consult toggle calls onChange', () => {
+    const onChange = vi.fn();
+    render(<MultiAgentProperties data={mockData} onChange={onChange} />);
+    const checkbox = screen.getByLabelText(/consult/i);
+    fireEvent.click(checkbox);
+    expect(onChange).toHaveBeenCalledWith({ enableConsult: true });
   });
 });

@@ -7,9 +7,9 @@ from typing import Any
 
 import pytest
 
-from agentweave.core.agent import Agent
-from agentweave.core.types import LLMResponse, Message, StreamChunk, Usage
-from agentweave.llm.base import BaseLLMProvider
+from agentchord.core.agent import Agent
+from agentchord.core.types import LLMResponse, Message, StreamChunk, Usage
+from agentchord.llm.base import BaseLLMProvider
 
 
 class BenchmarkProvider(BaseLLMProvider):

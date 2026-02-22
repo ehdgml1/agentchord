@@ -195,6 +195,12 @@ visual-builder/backend/API_ENDPOINTS_SUMMARY.md
 visual-builder/backend/docs/ISSUES_TRACKER.md
 
 # ============================================
+# Generated Files / Temp Scripts
+# ============================================
+*.pdf
+test_mcp_install.mjs
+
+# ============================================
 # Claude / AI Tools
 # ============================================
 .claude/

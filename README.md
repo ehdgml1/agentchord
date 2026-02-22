@@ -15,6 +15,33 @@ AgentChord는 [MCP](https://modelcontextprotocol.io/) (Model Context Protocol)�
 
 ---
 
+## Visual Builder
+
+코드 없이 드래그 앤 드롭으로 AI 워크플로우를 구축하고 실행할 수 있는 웹 기반 비주얼 빌더를 제공합니다.
+
+![Visual Builder](docs/images/visual-builder-screenshot.png)
+
+**주요 기능:**
+- 8가지 블록 타입: Agent, Multi-Agent Team, RAG, MCP Tool, Trigger, Condition, Feedback Loop, Parallel
+- 실시간 워크플로우 실행 및 SSE 기반 진행률 모니터링
+- MCP 마켓플레이스에서 외부 도구 원클릭 연결
+- 워크플로우를 Python 코드(AgentChord)로 자동 변환 및 내보내기
+- Playground 채팅으로 워크플로우 멀티턴 테스트
+- OpenAI, Anthropic, Gemini, Ollama 등 멀티 LLM 프로바이더 지원
+
+**실행:**
+```bash
+cd visual-builder
+
+# 백엔드 (FastAPI, http://localhost:8000)
+cd backend && python -m uvicorn app.main:app --reload --port 8000
+
+# 프론트엔드 (React + Vite, http://localhost:5173)
+npm install && npm run dev
+```
+
+---
+
 ## 왜 AgentChord인가?
 
 대부분의 에이전트 프레임워크는 기존 API 위에 편의 계층을 씌웁니다. AgentChord는 다른 접근 방식을 취합니다: **프로토콜 수준의 추상화에서부터 위로 구축하여** 각 계층에 대한 완전한 제어와 깊은 이해를 제공합니다.

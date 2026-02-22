@@ -1,13 +1,14 @@
 name: AgentChord CI
 
 on:
-  push:
-    branches:
-      - main
-      - develop
-  pull_request:
-    branches:
-      - main
+  workflow_dispatch:  # 수동 실행만 허용 (배포 시 push/pull_request 트리거 복원)
+  # push:
+  #   branches:
+  #     - main
+  #     - develop
+  # pull_request:
+  #   branches:
+  #     - main
 
 jobs:
   lint:
